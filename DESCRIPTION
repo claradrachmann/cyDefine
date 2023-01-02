@@ -1,0 +1,45 @@
+Package: cyDefine
+Title: Reference-based cell type identification in single-cell cytometry
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Clara", "Drachmann", , "cladra@dtu.dk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9652-6300")),
+    person("Christina Bligaard", "Pedersen", role = "aut",
+           comment = c(ORCID = "0000-0002-9895-0930")),
+    person("Lars Rønn", "Olsen", role = "aut",
+           comment = c(ORCID = "0000-0002-6725-7850"))
+  )
+Description: A package for robust identification of canonical cell types
+    as well as unassigned (and potentially novel) cells in various
+    single-cell cytometry datasets.
+License: MIT + file LICENSE
+Imports: 
+    caret,
+    crfsuite,
+    cyCombine,
+    dplyr,
+    magrittr,
+    purrr,
+    stats,
+    stringr,
+    tidyr,
+    WMDB
+Suggests: 
+    doParallel,
+    foreach,
+    ggplot2,
+    igraph,
+    knitr,
+    matrixcalc,
+    patchwork,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    uwot
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.0
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+LazyData: true
+Depends: 
+    R (>= 2.10)
