@@ -99,3 +99,23 @@ This is a wrapper function of cyCombine's data preparation functions, with
 some extra added functionality, taking you from a directory of FCS files or
 a flowset to a tidy tibble.
 }
+\examples{
+data_dir <- system.file("extdata", package = "cyDefine", mustWork = TRUE)
+
+uncorrected <- data_dir \%>\%
+  prepare_data(extract_filename_regex = "Helios2_(Plate\\\\d+)_(Sample\\\\d+)_",
+  extract_filename_into = c("batch", "sample"),
+  markers = markers)
+
+\dontrun{
+uncorrected <- data_dir \%>\%
+  prepare_data(metadata = "metadata.csv",
+  markers = markers,
+  filename_col = "FCS_name",
+  batch_ids = "Batch",
+  condition = "condition",
+  down_sample = TRUE,
+  sample_size = 100000)
+}
+
+}

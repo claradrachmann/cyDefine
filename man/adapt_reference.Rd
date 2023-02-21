@@ -5,23 +5,35 @@
 \title{Adapt Seurat PBMC reference to query marker panel}
 \usage{
 adapt_reference(
-  avail_markers,
+  reference,
+  query,
+  markers,
+  using_seurat = TRUE,
   exclude_celltypes = c("Doublet", "Platelet", "Eryth", "HSPC"),
+  celltype_col = ifelse(using_seurat, "celltype.l2", "celltype"),
   min_f1 = 0.7,
   seed = 332,
   verbose = TRUE
 )
 }
 \arguments{
-\item{avail_markers}{Character vector of available markers (intersecting query and reference)}
+\item{reference}{Tibble of reference data (cells in rows, markers in columns)}
 
-\item{exclude_celltypes}{Character vector of cell types of the Seurat reference to NOT consider for the specific data. Defaults to non-PBMCs.}
+\item{query}{Tibble of query data (cells in rows, markers in columns)}
+
+\item{markers}{Character vector of available markers present in both query
+and reference.}
+
+\item{using_seurat}{Boolean indicating whether or not the Seurat PBMC atlas is
+used as reference}
+
+\item{exclude_celltypes}{Only relevant if \code{using_seurat = TRUE}. Character
+vector of cell types of the Seurat reference to NOT consider during cell
+type classification. Defaults to non-PBMCs.}
 
 \item{min_f1}{Minimum F1 score required for two cell types to be separated}
 
 \item{verbose}{Verbosity}
-
-\item{reference}{Tibble of reference data (cells in rows, markers in columns)}
 }
 \value{
 Tibble of adapted reference

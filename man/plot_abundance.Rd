@@ -22,6 +22,9 @@ returned rather than a ggplot2 object}
 
 \item{verbose}{Verbosity}
 }
+\value{
+A ggplot2 bar plot of abundances
+}
 \description{
 Make bar plot of predicted cell type abundances
 }

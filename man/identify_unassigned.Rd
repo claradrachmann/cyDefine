@@ -39,6 +39,9 @@ cells of the query are assumed to be representative of those found in the refere
 
 \item{tune_params_on_unassigned}{???}
 }
+\value{
+A tibble of unassigned cells
+}
 \description{
 Identify unassigned cells
 }

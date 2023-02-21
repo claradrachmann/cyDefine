@@ -2,36 +2,51 @@
 % Please edit documentation in R/02_adapt_reference.R
 \name{map_marker_names}
 \alias{map_marker_names}
-\title{Map query marker names to reference marker names}
+\title{Change query marker names to match reference marker names}
 \usage{
 map_marker_names(
-  use_seurat = TRUE,
-  ref_markers = NULL,
   query,
+  ref_markers,
   query_markers,
+  using_seurat = TRUE,
   map_specific_from = NULL,
   map_specific_to = NULL,
   verbose = TRUE
 )
 }
 \arguments{
-\item{ref_markers}{Character vector of reference markers}
-
 \item{query}{Tibble of query data (cells in rows, markers in columns)}
+
+\item{ref_markers}{Character vector of reference markers}
 
 \item{query_markers}{Character vector of query markers}
 
-\item{map_specific_from}{Optional: used together with map_specific_to. Character vector of specific marker(s) of the query to manually map to specific marker(s) of the reference (given by map_specific_to)}
+\item{using_seurat}{Boolean indicating whether or not the Seurat PBMC atlas is
+used as reference}
 
-\item{map_specific_to}{Optional: used together with map_specific_from. Markers of the reference that the markers given by map_specific_from should be mapped to}
+\item{map_specific_from}{Optional: used together with \code{map_specific_to}.
+Character vector of specific marker(s) of the query to manually map to
+specific marker(s) of the reference (given by \code{map_specific_to}).}
+
+\item{map_specific_to}{Optional: used together with \code{map_specific_from}.
+Markers of the reference that the markers given by \code{map_specific_from} should
+be mapped to.}
 
 \item{verbose}{Verbosity}
 }
 \value{
-Tibble of query data modified to make marker names match reference markers
+Tibble of query data modified to make marker names match reference
+markers
 }
 \description{
-Map query marker names to reference marker names
+Change query marker names to match reference marker names
+}
+\examples{
+
+map_marker_names(using_seurat = TRUE, query = example_query,
+query_markers = example_markers, map_specific_from = c("CXCR5", "TCRgd"),
+map_specific_to = c("CD185","gdTCR"))
+
 }
 \seealso{
 Other adapt: 

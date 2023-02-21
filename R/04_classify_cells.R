@@ -34,6 +34,7 @@ macroF1_summary <- function(data, lev, model = NULL) {
 #' cells of the query are assumed to be representative of those found in the reference.
 #' @param load_model Optional: Path to an rda file of a previously trained model
 #' @param save_model Optional: Path to save an rda file of the trained model
+#' @param param_grid Optional: Modify parameter grid to train on
 #' @param return_pred Boolean indicating if only predictions should be returned as a character vector
 #' @param n_cv_folds Number of cross-validation folds used for hyperparameter tuning
 #' @param n_trees Number of trees in the random forest
@@ -45,13 +46,19 @@ macroF1_summary <- function(data, lev, model = NULL) {
 #' @return Tibble of query data with an added column of the predicted cell type, 'model_prediction'
 #' @export
 #'
-#' @examples
 classify_cells <- function(reference,
                            query,
                            markers,
                            unassigned_name = "unassigned",
                            load_model = NULL,
                            save_model = NULL,
+                           param_grid = expand.grid(
+                             mtry = as.integer(seq(
+                               from = round(0.25*length(markers)),
+                               to = round(0.9*length(markers)),
+                               length.out = 8)),
+                             min.node.size = seq(1, 6, 2),
+                             splitrule = "gini"),
                            return_pred = FALSE,
                            n_cv_folds = 5,
                            n_trees = 100,
@@ -84,12 +91,16 @@ classify_cells <- function(reference,
                                          preProcOptions = c("center", "scale"),
                                          allowParallel = TRUE,
                                          verboseIter = verbose)
-
-    param_grid <- expand.grid(mtry = as.integer(seq(from = round(0.25*length(markers)),
-                                                    to = round(0.9*length(markers)),
-                                                    length.out = 8)),
-                              min.node.size = seq(1, 6, 2),
-                              splitrule = "gini")
+    if(is.null(param_grid)){
+      param_grid <- expand.grid(
+        mtry = as.integer(seq(
+          from = round(0.25*length(markers)),
+          to = round(0.9*length(markers)),
+          length.out = 8)),
+        min.node.size = seq(1, 6, 2),
+        splitrule = "gini"
+        )
+    }
 
 
     if (verbose) {message("Training random forest using ", n_cv_folds,

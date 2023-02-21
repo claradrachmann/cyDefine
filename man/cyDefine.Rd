@@ -5,32 +5,45 @@
 \title{Run the full cyDefine pipeline}
 \usage{
 cyDefine(
-  reference = NULL,
+  reference,
   query,
   markers,
-  adapt_PBMC_reference = TRUE,
+  using_seurat = FALSE,
+  adapt_reference = ifelse(using_seurat, TRUE, FALSE),
   batch_correct = TRUE,
   identify_unassigned = TRUE,
-  norm_method = "scale",
+  norm_method = ifelse(using_seurat, "rank", "scale"),
   covar = NULL,
   load_model = NULL,
   save_model = NULL,
+  param_grid = expand.grid(mtry = as.integer(seq(from = round(0.25 * length(markers)), to
+    = round(0.9 * length(markers)), length.out = 8)), min.node.size = seq(1, 6, 2),
+    splitrule = "gini"),
   unassigned_name = "unassigned",
-  train_on_unassigned = TRUE,
+  train_on_unassigned = ifelse(using_seurat, FALSE, TRUE),
   n_cores = 2,
   seed = 332,
   verbose = TRUE
 )
 }
 \arguments{
-\item{reference}{Tibble of reference data (cells in rows, markers in columns)}
+\item{reference}{Tibble of reference data (cells in rows, markers in
+columns) if you want to apply a custom reference. If NULL, the Seurat
+PBMC atlas will be adapted and used as reference.}
 
 \item{query}{Tibble of query data (cells in rows, markers in columns)}
 
-\item{markers}{Character vector of available markers}
+\item{markers}{Character vector of available markers present in both query
+and reference.}
 
-\item{adapt_PBMC_reference}{Boolean indicating whether or not you want to use the
-Seurat PBMC atlas as reference, rather than supplying your own reference.}
+\item{using_seurat}{Boolean indicating whether the Seurat PBMC atlas is
+being supplied as reference. This info is needed to enable automated
+screening of common marker names in \code{map_marker_names()} and tree-based
+merging of cell type labels.}
+
+\item{adapt_reference}{Boolean indicating whether the provided reference
+should be adapted to match the query marker panel. Default: FALSE if
+\code{using_seurat} is FALSE, otherwise TRUE.}
 
 \item{batch_correct}{Boolean indicating whether or not you want to perform
 batch correction via cyCombine}
@@ -38,14 +51,19 @@ batch correction via cyCombine}
 \item{identify_unassigned}{Boolean indicating whether or not you want to
 identify unassigned cells after classifying the cells.}
 
-\item{norm_method}{Normalization method. Should be either 'rank', 'scale' or 'qnorm'. Default: 'scale'}
+\item{norm_method}{Normalization method for cyCombine batch correction.
+Should be either 'rank', 'scale' or 'qnorm'. Default is 'scale' unless
+reference is NULL, then 'rank', assuming heavy batch effects between Seurat
+atlas and query.}
 
 \item{covar}{The covariate ComBat should use. Can be a vector or a column name in the input tibble.
 If NULL, no covar will be used}
 
-\item{load_model}{Optional: Path to an RDS file of a previously trained model}
+\item{load_model}{Optional: Path to an rda file of a previously trained model}
 
-\item{save_model}{Optional: Path to save an RDS file of the trained model}
+\item{save_model}{Optional: Path to save an rda file of the trained model}
+
+\item{param_grid}{Optional: Modify parameter grid to train on}
 
 \item{unassigned_name}{Name used for unassigned cells}
 

@@ -5,6 +5,18 @@
 #' 1 %!in% 1:10
 `%!in%` <- Negate(`%in%`)
 
+#' weighted Mahalanobis distance
+#'
+wmahalanobis <- function (x, center, cov, weight)
+{
+  if (is.vector(x))
+    x=matrix(x, ncol = length(x))
+  else x=as.matrix(x)
+  x <- sweep(x, 2, center)
+  cov <- weight%*%solve(cov)
+  retval <- diag(x%*%cov%*%t(x))
+  retval
+}
 
 
 #' Check package
@@ -17,7 +29,6 @@
 #'
 #' @return Boolean - TRUE if package is present, FALSE if not.
 #'
-#' @examples
 check_package <- function(package,
                           repo = "CRAN",
                           git_repo = "",
@@ -52,9 +63,8 @@ check_package <- function(package,
 #' @param req_colnames Required column names to check if are among
 #' 'avail_colnames'
 #'
-#' @return
+#' @return NULL
 #'
-#' @examples
 check_colnames <- function(avail_colnames, req_colnames){
   if(length(setdiff(req_colnames, avail_colnames)) > 0){
       stop("Required column(s) ",

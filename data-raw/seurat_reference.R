@@ -33,7 +33,7 @@ anchors <- FindIntegrationAnchors(object.list = seu_obj_list,
 seurat_integrated <- IntegrateData(anchorset = anchors)
 
 
-
+saveRDS(seurat_integrated, file = "/home/projects/cytograted/data/seurat_integrated.rds")
 
 # --------------- Make tibble of normalized data and metadata --------------- #
 
@@ -90,8 +90,9 @@ seurat_reference <- seurat_reference %>%
   rename("CD3E" = "CD3-1",
          "CD3D" = "CD3-2",
          "gdTCR" = "TCR-1",
-         "abTCR" = "TCR-2") %>%
-  select(-cell_id)
+         "abTCR" = "TCR-2")
+# %>%
+  # select(-cell_id)
 
 
 

@@ -7,7 +7,6 @@
 #' @return Named list with values HEX colors and populations as names
 #' @export
 #'
-#' @examples
 get_distinct_colors <- function(populations, add_unassigned = TRUE) {
 
   # unassigned cells will be assigned to black
@@ -58,7 +57,6 @@ get_distinct_colors <- function(populations, add_unassigned = TRUE) {
 #' @return ggplot2 plot
 #' @export
 #'
-#' @examples
 plot_umap <- function(reference,
                       query,
                       markers,
@@ -211,10 +209,9 @@ plot_umap <- function(reference,
 #' @inheritParams plot_umap
 #' @param predicted_populations Character vector of (predicted) populations to plot abundance for
 #'
-#' @return
+#' @return A ggplot2 bar plot of abundances
 #' @export
 #'
-#' @examples
 plot_abundance <- function(predicted_populations,
                            colors = NULL,
                            return_data = FALSE,
@@ -276,11 +273,9 @@ plot_abundance <- function(predicted_populations,
 #' include in the heatmap
 #' @param title Title of the plot
 #'
-#' @return
+#' @return a pheatmap heatmap
 #' @export
 #'
-#' @examples
-
 plot_heatmap <- function(data,
                          population_col = "predicted_celltype",
                          markers_to_plot,

@@ -31,7 +31,6 @@
 #' as "model_prediction".
 #' @export
 #'
-#' @examples
 cyDefine <- function(reference,
                      query,
                      markers,
@@ -47,6 +46,13 @@ cyDefine <- function(reference,
                      covar = NULL,
                      load_model = NULL,
                      save_model = NULL,
+                     param_grid = expand.grid(
+                       mtry = as.integer(seq(
+                         from = round(0.25*length(markers)),
+                         to = round(0.9*length(markers)),
+                         length.out = 8)),
+                       min.node.size = seq(1, 6, 2),
+                       splitrule = "gini"),
                      # save_adapted_reference    OBS: ADD THIS ARGUMENT!
                      unassigned_name = "unassigned",
                      train_on_unassigned = ifelse(using_seurat,
@@ -88,6 +94,7 @@ cyDefine <- function(reference,
                           unassigned_name = unassigned_name,
                           load_model = load_model,
                           save_model = save_model,
+                          param_grid = param_grid,
                           n_cores = n_cores,
                           seed = seed,
                           verbose = verbose)

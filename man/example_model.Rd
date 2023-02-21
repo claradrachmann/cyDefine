@@ -5,7 +5,7 @@
 \alias{example_model}
 \title{An example of a model saved by cyDefine}
 \format{
-A tibble of 161,764 rows and 244 variables
+A caret model object of class 'train'
 }
 \usage{
 example_model

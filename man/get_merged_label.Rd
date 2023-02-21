@@ -4,7 +4,7 @@
 \alias{get_merged_label}
 \title{Get label of a merged population}
 \usage{
-get_merged_label(populations)
+get_merged_label(populations, using_seurat = TRUE)
 }
 \arguments{
 \item{populations}{Character vector of individual cell types in merged population}

@@ -1,5 +1,5 @@
 ---
-title: "cyDefine - using Seurat's PBMC reference"
+title: "cyDefine - Seurat's PBMC reference"
 author: "Clara Drachmann"
 date: "June 20, 2022"
 output: 
@@ -8,7 +8,7 @@ output:
   theme: hpstr
   highlight: vignette
 vignette: >
-  %\VignetteIndexEntry{cyDefine_seurat}
+  %\VignetteIndexEntry{cyDefine}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

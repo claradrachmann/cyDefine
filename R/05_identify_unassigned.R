@@ -7,7 +7,6 @@
 #'
 #' @return Numeric vector of Mahalanobis distance to population for each cell.
 #'
-#' @examples
 mahalanobis_distances <- function(cells,
                                   population,
                                   weights = NULL) {
@@ -41,10 +40,9 @@ mahalanobis_distances <- function(cells,
   }
 
   else {
-    check_package("WMDB")
     distances <- apply(as.matrix(cells),
                        1,
-                       WMDB::wmahalanobis,
+                       wmahalanobis,
                        center = mu,
                        cov = covar,
                        weight = weights)
@@ -63,7 +61,6 @@ mahalanobis_distances <- function(cells,
 #'
 #' @return Upper limit
 #'
-#' @examples
 MAD_max_distance <- function(distances, MAD_factor = 3) {
 
   # remove outliers and find maximum distance
@@ -84,10 +81,9 @@ MAD_max_distance <- function(distances, MAD_factor = 3) {
 #' @param pct_expl_var ???
 #' @param MAD_factor ???
 #'
-#' @return
+#' @return A tibble of unassigned cells
 #' @export
 #'
-#' @examples
 identify_unassigned <- function(reference,
                                 query,
                                 markers,

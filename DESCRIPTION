@@ -7,7 +7,9 @@ Authors@R: c(
     person("Christina Bligaard", "Pedersen", role = "aut",
            comment = c(ORCID = "0000-0002-9895-0930")),
     person("Lars Rønn", "Olsen", role = "aut",
-           comment = c(ORCID = "0000-0002-6725-7850"))
+           comment = c(ORCID = "0000-0002-6725-7850")),
+    person("Søren Helweg", "Dam", role = "aut",
+           comment = c(ORCID = "0000-0002-9895-0930"))
   )
 Description: A package for robust identification of canonical cell types
     as well as unassigned (and potentially novel) cells in various
@@ -22,8 +24,7 @@ Imports:
     purrr,
     stats,
     stringr,
-    tidyr,
-    WMDB
+    tidyr
 Suggests: 
     doParallel,
     foreach,
@@ -37,9 +38,9 @@ Suggests:
     uwot
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.3
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5.0)

@@ -4,7 +4,7 @@
 \alias{merge_populations}
 \title{Merge groups of similar cell populations}
 \usage{
-merge_populations(populations_to_merge, reference)
+merge_populations(populations_to_merge, reference, using_seurat = TRUE)
 }
 \arguments{
 \item{populations_to_merge}{Tibble ???}

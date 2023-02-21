@@ -211,14 +211,13 @@ get_merged_label <- function(populations, using_seurat = TRUE) {
 #'
 #' @param population_pairs Data frame of two character columns with one cell
 #' type in each, and rows representing all pairs of cell types to be tested.
-#' @param reference
-#' @param min_f1
-#' @param seed
-#' @param verbose
+#' @param reference desc
+#' @param min_f1 desc
+#' @param seed desc
+#' @param verbose desc
 #'
-#' @return
+#' @return A tibble of similar populations
 #'
-#' @examples
 identify_similar_populations <- function(population_pairs,
                                          reference,
                                          markers,
@@ -339,7 +338,6 @@ identify_similar_populations <- function(population_pairs,
 #' @return Tibble of adapted reference
 #' @export
 #'
-#' @examples
 adapt_reference <- function(reference,
                             query,
                             markers,

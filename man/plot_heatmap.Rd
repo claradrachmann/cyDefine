@@ -8,7 +8,7 @@ plot_heatmap(
   data,
   population_col = "predicted_celltype",
   markers_to_plot,
-  title = "Average marker expression of predicted cell types",
+  title = "Average marker expression of predicted cell types\\n",
   return_data = FALSE,
   verbose = TRUE
 )
@@ -28,6 +28,9 @@ include in the heatmap}
 returned rather than a ggplot2 object}
 
 \item{verbose}{Verbosity}
+}
+\value{
+a pheatmap heatmap
 }
 \description{
 Plot heatmap of marker expressions per population

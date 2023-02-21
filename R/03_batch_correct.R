@@ -10,7 +10,6 @@
 #' @return Named list of tibbles of batch corrected reference and query data
 #' @export
 #'
-#' @examples
 batch_correct <- function(reference,
                           query,
                           markers,

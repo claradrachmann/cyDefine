@@ -8,9 +8,12 @@ classify_cells(
   reference,
   query,
   markers,
-  unassigned_name = "ungated",
+  unassigned_name = "unassigned",
   load_model = NULL,
   save_model = NULL,
+  param_grid = expand.grid(mtry = as.integer(seq(from = round(0.25 * length(markers)), to
+    = round(0.9 * length(markers)), length.out = 8)), min.node.size = seq(1, 6, 2),
+    splitrule = "gini"),
   return_pred = FALSE,
   n_cv_folds = 5,
   n_trees = 100,
@@ -28,9 +31,11 @@ classify_cells(
 
 \item{unassigned_name}{Name used for unassigned cells}
 
-\item{load_model}{Optional: Path to an RDS file of a previously trained model}
+\item{load_model}{Optional: Path to an rda file of a previously trained model}
 
-\item{save_model}{Optional: Path to save an RDS file of the trained model}
+\item{save_model}{Optional: Path to save an rda file of the trained model}
+
+\item{param_grid}{Optional: Modify parameter grid to train on}
 
 \item{return_pred}{Boolean indicating if only predictions should be returned as a character vector}
 

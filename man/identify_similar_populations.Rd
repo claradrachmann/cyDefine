@@ -7,12 +7,26 @@
 identify_similar_populations(
   population_pairs,
   reference,
+  markers,
   min_f1 = 0.6,
+  seed = 332,
   verbose = TRUE
 )
 }
 \arguments{
-\item{verbose}{}
+\item{population_pairs}{Data frame of two character columns with one cell
+type in each, and rows representing all pairs of cell types to be tested.}
+
+\item{reference}{desc}
+
+\item{min_f1}{desc}
+
+\item{seed}{desc}
+
+\item{verbose}{desc}
+}
+\value{
+A tibble of similar populations
 }
 \description{
 Identify indistinguishable cell type populations based on query markers
