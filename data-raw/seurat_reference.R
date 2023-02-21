@@ -3,14 +3,17 @@ library(Seurat)
 library(SeuratDisk)
 library(ggplot2)
 
-# multi.h5seurat is obtained from https://atlas.fredhutch.org/nygc/multimodal-pbmc/
-seu_obj <- LoadH5Seurat("multi.h5seurat",
+# Seurat PBMC is obtained from https://atlas.fredhutch.org/nygc/multimodal-pbmc/
+system("wget https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat")
+
+seu_obj <- LoadH5Seurat("pbmc_multimodal.h5seurat",
                         assays = "ADT",
                         reductions = FALSE,
                         graphs = FALSE,
                         images = FALSE)
 
-
+# Remove raw data
+system("rm pbmc_multimodal.h5seurat")
 
 # --------------- integration --------------- #
 
