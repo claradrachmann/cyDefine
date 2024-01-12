@@ -7,6 +7,7 @@ example_query <- prepare_data(
   derand = TRUE,
   compensate = FALSE,
   extract_filename_regex = "^\\d{2}Feb18_Helios2_(Plate\\d+)_(Sample\\d+)",
-  extract_filename_into = c("batch", "sample"))
+  extract_filename_into = c("batch", "sample")
+)
 
 usethis::use_data(example_query, overwrite = TRUE)

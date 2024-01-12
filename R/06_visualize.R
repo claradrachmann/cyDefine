@@ -1,4 +1,3 @@
-
 #' Get distinct colors for a range of cell types
 #'
 #' @param populations Character vector of populations to get colors for
@@ -8,25 +7,28 @@
 #' @export
 #'
 get_distinct_colors <- function(populations, add_unassigned = TRUE) {
-
   # unassigned cells will be assigned to black
   populations <- populations[populations != "unassigned"]
 
-  colors <- c("#DC050C", "#7BAFDE", "#FDB462","#33A02C", "#FB8072",
-              "#1965B0", "#882E72", "#B2DF8A", "#B17BA6", "#A6761D",
-              "#E7298A", "#55A1B1", "#E6AB02", "#7570B3", "#ba5ce3",
-              "#FAE174", "#B5651D", "#E78AC3", "#aeae5c", "#FF7F00",
-              "#56ff0d", "#0C0C91", "#BEAED4", "#1e90ff", "#aa8282",
-              "#0AC8D4", "#808000", "#7800FA", "#00FAFA", "#641400",
-              "#8DD3C7", "#666666", "#999999", "#d4b7b7", "#8600bf",
-              "#00bfff", "#ffff00", "#D4E1C8", "#D470C8", "#64C870",
-              "#64C80C", "#0C00FA", "#FA00FA", "#707A00")
+  colors <- c(
+    "#DC050C", "#7BAFDE", "#FDB462", "#33A02C", "#FB8072",
+    "#1965B0", "#882E72", "#B2DF8A", "#B17BA6", "#A6761D",
+    "#E7298A", "#55A1B1", "#E6AB02", "#7570B3", "#ba5ce3",
+    "#FAE174", "#B5651D", "#E78AC3", "#aeae5c", "#FF7F00",
+    "#56ff0d", "#0C0C91", "#BEAED4", "#1e90ff", "#aa8282",
+    "#0AC8D4", "#808000", "#7800FA", "#00FAFA", "#641400",
+    "#8DD3C7", "#666666", "#999999", "#d4b7b7", "#8600bf",
+    "#00bfff", "#ffff00", "#D4E1C8", "#D470C8", "#64C870",
+    "#64C80C", "#0C00FA", "#FA00FA", "#707A00"
+  )
 
   colors <- colors[1:length(populations)]
   names(colors) <- populations
 
   # add unassigned cells
-  if (add_unassigned) {colors <- c(colors, "unassigned" = "#000000")}
+  if (add_unassigned) {
+    colors <- c(colors, "unassigned" = "#000000")
+  }
 
   return(colors)
 }
@@ -61,6 +63,7 @@ plot_umap <- function(reference,
                       query,
                       markers,
                       colors = NULL,
+                      query_color_col = "predicted_celltype",
                       build_umap_on = "both",
                       shuffle = TRUE,
                       down_sample = TRUE,
@@ -68,31 +71,36 @@ plot_umap <- function(reference,
                       return_data = FALSE,
                       seed = 332,
                       verbose = TRUE) {
-
   # check required packages
   check_package("ggplot2")
   check_package("uwot")
   check_package("patchwork")
 
   check_colnames(colnames(reference), c("celltype", markers))
-  check_colnames(colnames(query), c("predicted_celltype", markers))
+  check_colnames(colnames(query), c(query_color_col, markers))
 
-  if (verbose) {message("Visualizing reference and query by UMAP")}
+  if (verbose) {
+    message("Visualizing reference and query by UMAP")
+  }
   set.seed(seed)
 
   # shuffle data
   if (shuffle) {
-    reference <- reference[sample(nrow(reference)),]
-    query <- query[sample(nrow(query)),]
+    reference <- reference[sample(nrow(reference)), ]
+    query <- query[sample(nrow(query)), ]
   }
 
-  if (is.null(colors)) {colors <- get_distinct_colors(unique(reference$celltype))}
+  if (is.null(colors)) {
+    colors <- get_distinct_colors(unique(reference$celltype))
+  }
 
   if (down_sample & (sample_n < nrow(reference) | sample_n < nrow(query))) {
     if (verbose) {
-      message("Down-sampling reference and query to ",
-              sample_n,
-              " cells each")
+      message(
+        "Down-sampling reference and query to ",
+        sample_n,
+        " cells each"
+      )
     }
     reference <- reference %>%
       dplyr::slice_sample(n = min(sample_n, nrow(reference)))
@@ -101,39 +109,46 @@ plot_umap <- function(reference,
   }
 
   if (build_umap_on == "both") {
-
-    if (verbose) {"Computing UMAP embedding of all cells of reference and query"}
+    if (verbose) {
+      "Computing UMAP embedding of all cells of reference and query"
+    }
 
     # UMAP embedding of both reference and query
-    full_umap <- dplyr::bind_rows(reference %>%
-                                    dplyr::select(dplyr::all_of(markers)),
-                                  query %>%
-                                    dplyr::select(dplyr::all_of(markers))) %>%
-      uwot::umap(n_neighbors = 15,
-                 min_dist = 0.2,
-                 metric = "euclidean",
-                 ret_model = FALSE)
+    full_umap <- dplyr::bind_rows(
+      reference %>%
+        dplyr::select(dplyr::all_of(markers)),
+      query %>%
+        dplyr::select(dplyr::all_of(markers))
+    ) %>%
+      uwot::umap(
+        n_neighbors = 15,
+        min_dist = 0.2,
+        metric = "euclidean",
+        ret_model = FALSE
+      )
 
-    ref_umap <- full_umap[1:nrow(reference),]
-    query_umap <- full_umap[(nrow(reference)+1):nrow(full_umap),]
-
-  }
-
-  else if (build_umap_on == "reference") {
-
-    if (verbose) {"Computing UMAP embedding only of reference cells. Be aware that this can hide potential novel populations in query!"}
+    ref_umap <- full_umap[1:nrow(reference), ]
+    query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
+  } else if (build_umap_on == "reference") {
+    if (verbose) {
+      "Computing UMAP embedding only of reference cells. Be aware that this can hide potential novel populations in query!"
+    }
 
     # UMAP embedding of reference
     ref_umap_embed <- reference %>%
       dplyr::select(dplyr::all_of(markers)) %>%
-      uwot::umap(n_neighbors = 15,
-                 min_dist = 0.2,
-                 metric = "euclidean",
-                 ret_model = TRUE)
+      uwot::umap(
+        n_neighbors = 15,
+        min_dist = 0.2,
+        metric = "euclidean",
+        ret_model = TRUE
+      )
 
     ref_umap <- ref_umap_embed$embedding
 
-    if (verbose) {"Projecting query cells onto reference UMAP embedding"}
+    if (verbose) {
+      "Projecting query cells onto reference UMAP embedding"
+    }
 
     # projection of new data
     query_umap <- query %>%
@@ -142,64 +157,92 @@ plot_umap <- function(reference,
   }
 
 
-  if (return_data) {return (list("reference" = ref_umap,
-                                 "query" = query_umap))}
+  if (return_data) {
+    colnames(ref_umap) <- c("UMAP1", "UMAP2")
+    colnames(query_umap) <- c("UMAP1", "UMAP2")
+
+    return(list(
+      "reference" = dplyr::bind_cols(reference, ref_umap),
+      "query" = dplyr::bind_cols(query, query_umap)
+    ))
+  }
 
   # avoid too long cell type labels
   names(colors) <- stringr::str_wrap(names(colors), 20)
 
   # get number of columns in legend
-  n_legend_cols <- dplyr::case_when(length(colors) > 45 ~ 4,
-                                    length(colors) > 30 ~ 3,
-                                    length(colors) > 15 ~ 2,
-                                    TRUE ~ 1)
+  n_legend_cols <- dplyr::case_when(
+    length(colors) > 45 ~ 4,
+    length(colors) > 30 ~ 3,
+    length(colors) > 15 ~ 2,
+    TRUE ~ 1
+  )
 
   # plot reference colored by cell type
   ref_embedding <- ref_umap %>%
     dplyr::as_tibble() %>%
     dplyr::mutate(celltype = stringr::str_wrap(reference$celltype, 20)) %>%
-    ggplot2::ggplot(ggplot2::aes(x = .data$V1,
-                                 y = .data$V2)) +
+    ggplot2::ggplot(ggplot2::aes(
+      x = .data$V1,
+      y = .data$V2
+    )) +
     ggplot2::geom_point(ggplot2::aes(color = .data$celltype),
-                        size = 0.5,
-                        alpha = 0.5) +
-    ggplot2::guides(color = ggplot2::guide_legend(override.aes = list(size = 2,
-                                                                      alpha = 1),
-                                                  ncol = n_legend_cols)) +
+      size = 0.5,
+      alpha = 0.5
+    ) +
+    ggplot2::guides(color = ggplot2::guide_legend(
+      override.aes = list(
+        size = 2,
+        alpha = 1
+      ),
+      ncol = n_legend_cols
+    )) +
     ggplot2::theme_bw() +
     ggplot2::ggtitle("Reference") +
     ggplot2::xlab("UMAP1") +
     ggplot2::ylab("UMAP2") +
     ggplot2::scale_colour_manual("Cell type",
-                                 values = colors)
+      values = colors
+    )
 
   # plot query colored by predicted cell type on top of reference in grey
   query_embedding <- ggplot2::ggplot() +
-    ggplot2::geom_point(ggplot2::aes(x = ref_umap[,1],
-                                     y = ref_umap[,2]),
-                        size = 0.5,
-                        alpha = 1,
-                        color = "grey87") +
-    ggplot2::geom_point(ggplot2::aes(x = query_umap[,1],
-                                     y = query_umap[,2],
-                                     color = stringr::str_wrap(query$predicted_celltype, 20)),
-                        size = 0.5,
-                        alpha = 0.5,
-                        show.legend = FALSE) +
+    ggplot2::geom_point(
+      ggplot2::aes(
+        x = ref_umap[, 1],
+        y = ref_umap[, 2]
+      ),
+      size = 0.5,
+      alpha = 1,
+      color = "grey87"
+    ) +
+    ggplot2::geom_point(
+      ggplot2::aes(
+        x = query_umap[, 1],
+        y = query_umap[, 2],
+        color = stringr::str_wrap(query[[query_color_col]], 20)
+      ),
+      size = 0.5,
+      alpha = 0.5,
+      show.legend = FALSE
+    ) +
     ggplot2::theme_bw() +
     ggplot2::ggtitle("Query - predicted cell types") +
     ggplot2::xlab("UMAP1") +
     ggplot2::ylab("UMAP2") +
     ggplot2::scale_colour_manual("Cell type",
-                                 values = colors)
+      values = colors
+    )
 
   p <- ref_embedding +
-    query_embedding + ggplot2::theme(axis.title.y = ggplot2::element_blank(),
-                                     axis.text.y = ggplot2::element_blank(),
-                                     axis.ticks.y = ggplot2::element_blank()) +
-    patchwork::plot_layout(guides = 'collect')
+    query_embedding + ggplot2::theme(
+      axis.title.y = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_blank(),
+      axis.ticks.y = ggplot2::element_blank()
+    ) +
+    patchwork::plot_layout(guides = "collect")
 
-  return (p)
+  return(p)
 }
 
 
@@ -216,49 +259,67 @@ plot_abundance <- function(predicted_populations,
                            colors = NULL,
                            return_data = FALSE,
                            verbose = TRUE) {
-
   check_package("ggplot2")
 
-  if (verbose) {message("Visualizing abundance of predicted cell types")}
+  if (verbose) {
+    message("Visualizing abundance of predicted cell types")
+  }
 
-  if (is.null(colors)) {colors <- get_distinct_colors(unique(predicted_populations))}
+  if (is.null(colors)) {
+    colors <- get_distinct_colors(unique(predicted_populations))
+  }
 
   freqs <- table(predicted_populations) %>%
     dplyr::as_tibble() %>%
-    dplyr::mutate(prop = n/sum(n),
-                  label = paste0(round(100*prop,1), "%"),
-                  col = colors[predicted_populations])
+    dplyr::mutate(
+      prop = n / sum(n),
+      label = paste0(round(100 * prop, 1), "%"),
+      col = colors[predicted_populations]
+    )
 
-  if (return_data) {return(freqs)}
+  if (return_data) {
+    return(freqs)
+  }
 
   p <- freqs %>%
-    ggplot2::ggplot(ggplot2::aes(x = .data$predicted_populations,
-                                 y = .data$prop,
-                                 fill = .data$predicted_populations)) +
-    ggplot2::geom_bar(stat = "identity",
-                      width = 0.9) +
-    ggplot2::geom_text(data = freqs,
-                       ggplot2::aes(
-                         # x = .data$predicted_populations,
-                         # y = .data$prop,
-                         label = paste0(round(100*.data$prop, 1), "%")),
-                       position = ggplot2::position_dodge(width = 1),
-                       vjust = -0.5,
-                       hjust = 0.5,
-                       size = 3) +
+    ggplot2::ggplot(ggplot2::aes(
+      x = .data$predicted_populations,
+      y = .data$prop,
+      fill = .data$predicted_populations
+    )) +
+    ggplot2::geom_bar(
+      stat = "identity",
+      width = 0.9
+    ) +
+    ggplot2::geom_text(
+      data = freqs,
+      ggplot2::aes(
+        # x = .data$predicted_populations,
+        # y = .data$prop,
+        label = paste0(round(100 * .data$prop, 1), "%")
+      ),
+      position = ggplot2::position_dodge(width = 1),
+      vjust = -0.5,
+      hjust = 0.5,
+      size = 3
+    ) +
     ggplot2::theme_minimal() +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
-                                                       vjust = 0.5,
-                                                       hjust = 1,
-                                                       size = 10),
-                   legend.position = "none",
-                   panel.grid.major.x = ggplot2::element_blank()) +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        angle = 90,
+        vjust = 0.5,
+        hjust = 1,
+        size = 10
+      ),
+      legend.position = "none",
+      panel.grid.major.x = ggplot2::element_blank()
+    ) +
     ggplot2::scale_fill_manual(values = colors) +
     ggplot2::ggtitle("Cell type abundance") +
     ggplot2::xlab("Predicted cell types") +
     ggplot2::ylab("Proportion of cells")
 
-  return (p)
+  return(p)
 }
 
 
@@ -282,11 +343,12 @@ plot_heatmap <- function(data,
                          title = "Average marker expression of predicted cell types\n",
                          return_data = FALSE,
                          verbose = TRUE) {
-
   check_package("pheatmap")
   check_colnames(colnames(data), c(population_col, markers_to_plot))
 
-  if (verbose) {message("Visualizing expression of predicted cell types")}
+  if (verbose) {
+    message("Visualizing expression of predicted cell types")
+  }
 
   data <- data %>%
     dplyr::group_by_at(population_col) %>%
@@ -300,31 +362,32 @@ plot_heatmap <- function(data,
 
   colnames(plot_dat) <- data[[population_col]]
 
-  if (return_data) {return(plot_dat)}
+  if (return_data) {
+    return(plot_dat)
+  }
 
 
-  p <- pheatmap::pheatmap(mat = plot_dat,
-                          scale = "none",
-                          main = title,
-                          cluster_rows = TRUE,
-                          cluster_cols = TRUE,
+  p <- pheatmap::pheatmap(
+    mat = plot_dat,
+    scale = "none",
+    main = title,
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
 
-                          #breaks = my.breaks,
-                          color = grDevices::colorRampPalette(rev(RColorBrewer::brewer.pal(n = 7, name =
-                                                                    "RdBu")))(100),
-                          legend = TRUE,
-                          border_color = "grey",
-                          treeheight_row = 30,
-                          treeheight_col = 30,
-                          fontsize = 10,
-                          fontsize_row = 8,
-                          fontsize_col = 8,
-                          angle_col = 90)
+    # breaks = my.breaks,
+    color = grDevices::colorRampPalette(rev(RColorBrewer::brewer.pal(
+      n = 7, name =
+        "RdBu"
+    )))(100),
+    legend = TRUE,
+    border_color = "grey",
+    treeheight_row = 30,
+    treeheight_col = 30,
+    fontsize = 10,
+    fontsize_row = 8,
+    fontsize_col = 8,
+    angle_col = 90
+  )
 
-  return (p)
+  return(p)
 }
-
-
-
-
-

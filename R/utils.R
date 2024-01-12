@@ -7,14 +7,15 @@
 
 #' weighted Mahalanobis distance
 #'
-wmahalanobis <- function (x, center, cov, weight)
-{
-  if (is.vector(x))
-    x=matrix(x, ncol = length(x))
-  else x=as.matrix(x)
+wmahalanobis <- function(x, center, cov, weight) {
+  if (is.vector(x)) {
+    x <- matrix(x, ncol = length(x))
+  } else {
+    x <- as.matrix(x)
+  }
   x <- sweep(x, 2, center)
-  cov <- weight%*%solve(cov)
-  retval <- diag(x%*%cov%*%t(x))
+  cov <- weight %*% solve(cov)
+  retval <- diag(x %*% cov %*% t(x))
   retval
 }
 
@@ -32,26 +33,26 @@ wmahalanobis <- function (x, center, cov, weight)
 check_package <- function(package,
                           repo = "CRAN",
                           git_repo = "",
-                          required = TRUE){
-
+                          required = TRUE) {
   # if package not installed
-  if(!requireNamespace(package, quietly = TRUE)){
-
+  if (!requireNamespace(package, quietly = TRUE)) {
     if (required) {
-      if (repo == "CRAN"){
+      if (repo == "CRAN") {
         install_function <- "install.packages('"
       } else if (repo == "github") {
         install_function <- paste0("devtools::install_github('", git_repo, "/")
-      } else if (repo == "Bioc"){
+      } else if (repo == "Bioc") {
         install_function <- "BiocManager::install('"
       }
 
-      stop("Package ", package," is not installed.\n",
-           "Please run: ", install_function, package, "')")
+      stop(
+        "Package ", package, " is not installed.\n",
+        "Please run: ", install_function, package, "')"
+      )
     }
-    return (FALSE)
+    return(FALSE)
   }
-  return (TRUE)
+  return(TRUE)
 }
 
 
@@ -65,12 +66,12 @@ check_package <- function(package,
 #'
 #' @return NULL
 #'
-check_colnames <- function(avail_colnames, req_colnames){
-  if(length(setdiff(req_colnames, avail_colnames)) > 0){
-      stop("Required column(s) ",
-           paste0(setdiff(req_colnames, avail_colnames), collapse = ", "),
-           " were not found.")
-    }
+check_colnames <- function(avail_colnames, req_colnames) {
+  if (length(setdiff(req_colnames, avail_colnames)) > 0) {
+    stop(
+      "Required column(s) ",
+      paste0(setdiff(req_colnames, avail_colnames), collapse = ", "),
+      " were not found."
+    )
+  }
 }
-
-

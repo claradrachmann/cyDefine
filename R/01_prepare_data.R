@@ -1,4 +1,3 @@
-
 #' Prepare a directory of .fcs files
 #'
 #' This is a wrapper function of cyCombine's data preparation functions, with
@@ -28,19 +27,23 @@
 #' data_dir <- system.file("extdata", package = "cyDefine", mustWork = TRUE)
 #'
 #' uncorrected <- data_dir %>%
-#'   prepare_data(extract_filename_regex = "Helios2_(Plate\\d+)_(Sample\\d+)_",
-#'   extract_filename_into = c("batch", "sample"),
-#'   markers = markers)
+#'   prepare_data(
+#'     extract_filename_regex = "Helios2_(Plate\\d+)_(Sample\\d+)_",
+#'     extract_filename_into = c("batch", "sample"),
+#'     markers = markers
+#'   )
 #'
 #' \dontrun{
 #' uncorrected <- data_dir %>%
-#'   prepare_data(metadata = "metadata.csv",
-#'   markers = markers,
-#'   filename_col = "FCS_name",
-#'   batch_ids = "Batch",
-#'   condition = "condition",
-#'   down_sample = TRUE,
-#'   sample_size = 100000)
+#'   prepare_data(
+#'     metadata = "metadata.csv",
+#'     markers = markers,
+#'     filename_col = "FCS_name",
+#'     batch_ids = "Batch",
+#'     condition = "condition",
+#'     down_sample = TRUE,
+#'     sample_size = 100000
+#'   )
 #' }
 #'
 #' @export
@@ -69,20 +72,21 @@ prepare_data <- function(data_dir = NULL,
                          compensate = FALSE,
                          .keep = FALSE,
                          clean_colnames = TRUE,
-                         verbose = TRUE){
-
+                         verbose = TRUE) {
   # Stop if no data is given
-  if(is.null(data_dir) & is.null(flowset)) stop("No data given.")
+  if (is.null(data_dir) & is.null(flowset)) stop("No data given.")
 
   # directory of FCS files
-  if(!is.null(data_dir)){
+  if (!is.null(data_dir)) {
     # Remove slash at end of data_dir
-    if(data_dir %>% endsWith("/")) data_dir <- data_dir %>% stringr::str_sub(end = -2)
+    if (data_dir %>% endsWith("/")) data_dir <- data_dir %>% stringr::str_sub(end = -2)
 
-    if (verbose) {message("Preparing FCS files in directory ", data_dir)}
+    if (verbose) {
+      message("Preparing FCS files in directory ", data_dir)
+    }
 
     # Compile directory to flowset
-    if(is.null(flowset)){
+    if (is.null(flowset)) {
       flowset <- data_dir %>%
         cyCombine::compile_fcs(pattern = pattern)
     }
@@ -91,15 +95,16 @@ prepare_data <- function(data_dir = NULL,
     if (compensate) {
       if (verbose) message("Compensating for spectral overlap between fluorescence channels")
       comp <- flowCore::fsApply(flowset,
-                                function(x) flowCore::spillover(x)$SPILL,
-                                simplify = FALSE)
+        function(x) flowCore::spillover(x)$SPILL,
+        simplify = FALSE
+      )
       flowset <- flowCore::compensate(flowset, comp)
     }
 
     # Look for metadata in data_dir
-    if(!is.null(metadata)){
-      if("data.frame" %!in% class(metadata)){
-        if(!file.exists(file.path(metadata)) & file.exists(file.path(data_dir, metadata))) metadata <- file.path(data_dir, metadata)
+    if (!is.null(metadata)) {
+      if ("data.frame" %!in% class(metadata)) {
+        if (!file.exists(file.path(metadata)) & file.exists(file.path(data_dir, metadata))) metadata <- file.path(data_dir, metadata)
       }
     }
   }
@@ -107,36 +112,43 @@ prepare_data <- function(data_dir = NULL,
   # Convert flowset to dataframe
   if (verbose) message("Converting flowset to data frame")
   fcs_data <- flowset %>%
-    cyCombine::convert_flowset(metadata = metadata,
-                               filename_col = filename_col,
-                               sample_ids = sample_ids,
-                               batch_ids = batch_ids,
-                               condition = condition,
-                               anchor = anchor,
-                               down_sample = down_sample,
-                               sample_size = sample_size,
-                               sampling_type = sampling_type,
-                               seed = seed,
-                               panel = panel,
-                               panel_channel = panel_channel,
-                               panel_antigen = panel_antigen,
-                               clean_colnames = clean_colnames) %>%
+    cyCombine::convert_flowset(
+      metadata = metadata,
+      filename_col = filename_col,
+      sample_ids = sample_ids,
+      batch_ids = batch_ids,
+      condition = condition,
+      anchor = anchor,
+      down_sample = down_sample,
+      sample_size = sample_size,
+      sampling_type = sampling_type,
+      seed = seed,
+      panel = panel,
+      panel_channel = panel_channel,
+      panel_antigen = panel_antigen,
+      clean_colnames = clean_colnames
+    ) %>%
     # Transform dataset with asinh
-    purrr::when(transform ~ cyCombine::transform_asinh(., markers = markers,
-                                                       cofactor = cofactor,
-                                                       derand = derand,
-                                                       .keep = .keep),
-                ~ .)
+    purrr::when(
+      transform ~ cyCombine::transform_asinh(.,
+        markers = markers,
+        cofactor = cofactor,
+        derand = derand,
+        .keep = .keep
+      ),
+      ~.
+    )
 
   # Extract relevant information from file names (saved in 'sample' column)
   if (!is.null(extract_filename_regex)) {
     fcs_data <- fcs_data %>%
-      tidyr::extract(col = sample,
-                     into = extract_filename_into,
-                     regex = extract_filename_regex)
+      tidyr::extract(
+        col = sample,
+        into = extract_filename_into,
+        regex = extract_filename_regex
+      )
   }
 
   if (verbose) message("Done!")
   return(fcs_data)
 }
-

@@ -46,4 +46,3 @@
 #' @format A character vector of length 42
 #'
 "example_markers"
-
