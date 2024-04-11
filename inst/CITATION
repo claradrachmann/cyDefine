@@ -1,0 +1,17 @@
+bibentry(
+    bibtype = "Article",
+    title = "Title",
+    author = personList(
+        as.person("Author1"),
+        as.person("Author2")
+        ),
+    year = 2023,
+    journal = "BMC Biology",
+    doi = "10.1186/s12915-023-01724-w",
+    textVersion =
+    paste(
+        "Authors",
+        "Title",
+        "BioRxiv (2024)"
+        )
+    )
