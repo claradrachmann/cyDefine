@@ -166,7 +166,7 @@ identify_unassigned <- function(reference,
           unassigned_name = FALSE,
           return_pred = TRUE,
           n_cv_folds = 2,
-          n_trees = 50,
+          # n_trees = 50,
           verbose = FALSE
         )
 
