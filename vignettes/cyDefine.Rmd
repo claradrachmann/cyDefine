@@ -34,16 +34,20 @@ devtools::load_all()
 ```
 
 ## Data preparation
-The modules of cyDefine work on dplyr tibbles with cells by rows and markers (along with potential metadata) by columns. 
+
+The modules of cyDefine work on `tibble` tibbles with cells by rows and markers (along with potential metadata) by columns. 
 If you already have your data in a data frame format, the conversion to a tibble should be straightforward. Importantly, the reference tibble needs a `celltype` column, and both reference and query need columns named `sample` and `batch` if batch effects are to be corrected for. However, it is expected that most users will start their analysis from raw FCS files.
 
 ### Prepare FCS files
+
 In order to prepare a directory of FCS files for analysis, cyDefine needs further information. For the custom reference, information on applied marker panel, cell type belonging, and batch of origin (if batch correction should be performed) are required as a minimum, while sample IDs, potential conditions, and other features of relevance can be given as well.
 
 #### Marker panel
+
 Information on the marker panel can either be given as a character vector of marker names or as a CSV file with the columns `channel`, `antigen`, and `type`, where `type = 'none'` means that the given column is not of interest.
 
 #### Metadata
+
 The remaining of information can either be extracted directly from the file names, if present within them, or it can be given in a metadata CSV file with columns `filename`, and e.g. `batch`, `condition`, etc. 
 
 If you want to extract the metadata from the FCS file names, use the `extract_filename_regex` and `extract_filename_into` arguments. More information can be found in the function documentation, but here is an example:
@@ -94,6 +98,7 @@ unique(reference$celltype)
 ```
 
 We see that two cell types do not represent canonical populations and are better described by 'unassigned'. We will label them accordingly:
+
 ```{r}
 unassigned_names <- c("Non-pDC-non-mDC", "NonNK-nonDC")
 
@@ -106,6 +111,7 @@ reference <- reference %>%
 ```
 
 ### Prepare data from CSV / data frame
+
 If you already have your data in e.g. CSV format, you can use the more modular workflow shown below.
 In this case, it is assumed that, if necessary, compensation of spectral overlap is already performed.
 ```{r, eval=FALSE}
@@ -140,19 +146,22 @@ query <- transform_asinh(
 
 
 ## Run cyDefine with a single function
+
 This code assumes that you are already familiar with the modules of cyDefine. Basically, `cyDefine()` is a wrapper around the `batch_correct()`, `classify_cells()`, and `identify_unassigned()` pipeline which are all explained in more detail below. This single code chunk allows you to easily run the code of all following sections.
 ```{r, eval=FALSE}
-classified_query <- cyDefine(reference, 
-                             query, 
-                             markers, 
-                             adapt_reference = TRUE, 
-                             using_seurat = TRUE, 
-                             batch_correct = TRUE, 
-                             load_model = "../data/example_model.rda", 
-                             identify_unassigned = TRUE, 
-                             train_on_unassigned = TRUE,
-                             unassigned_name = "unassigned",
-                             seed = 332)
+classified_query <- cyDefine(
+  reference, 
+  query, 
+  markers, 
+  adapt_reference = TRUE, 
+  using_seurat = FALSE, 
+  batch_correct = TRUE, 
+  load_model = "../data/example_model.rda",
+  identify_unassigned = TRUE, 
+  train_on_unassigned = TRUE,
+  unassigned_name = "unassigned",
+  seed = 332
+  )
 ```
 
 
@@ -179,11 +188,13 @@ query <- corrected$query
 Now, our reference and query data are directly comparable, and cyDefine enables the transfer of cell type labels from your reference dataset onto your query. The classified cell types will be saved in a column named `model_prediction`.
 
 ```{r, message=FALSE}
-classified_query <- classify_cells(reference = reference,
-                                   query = query,
-                                   markers = markers,
-                                   load_model = "../data/example_model.rda",
-                                   seed = 332)
+classified_query <- classify_cells(
+  reference = reference,
+  query = query,
+  markers = markers,
+  load_model = "../data/example_model.rda",
+  seed = 332
+  )
 
 unique(classified_query$model_prediction)
 ```
@@ -194,12 +205,14 @@ unique(classified_query$model_prediction)
 After classifying all query cells to one of the canonical cell types of your reference, you might want to filter out unassigned cells, i.e. cells that do not seem to actually belong to the population to which it was predicted to belong. Unassigned cells can represent artifacts or cell types that are not defined in the reference, i.e. they could potentially represent biological novelties. cyDefine has two strategies for identifying unassigned cells, a supervised strategy using unassigned cells of the reference in model training, and an unsupervised strategy that does not rely on unassigned cells in the reference. In this example, the supervised strategy is applied as the query sample is expected to hold similar cell types as the reference. The new cell type labels will be saved in a column named `predicted_celltype`.
 
 ```{r, message=FALSE, warning=FALSE}
-classified_query <- identify_unassigned(query = classified_query, 
-                                        reference = reference,
-                                        markers = markers, 
-                                        train_on_unassigned = TRUE,
-                                        unassigned_name = "unassigned",
-                                        seed = 332)
+classified_query <- identify_unassigned(
+  query = classified_query, 
+  reference = reference,
+  markers = markers, 
+  train_on_unassigned = TRUE,
+  unassigned_name = "unassigned",
+  seed = 332
+  )
 
 unique(classified_query$predicted_celltype)
 ```
