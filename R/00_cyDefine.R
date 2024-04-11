@@ -31,39 +31,47 @@
 #' as "model_prediction".
 #' @export
 #'
-cyDefine <- function(reference,
-                     query,
-                     markers,
-                     using_seurat = FALSE,
-                     adapt_reference = ifelse(using_seurat,
-                                              TRUE,
-                                              FALSE),
-                     batch_correct = TRUE,
-                     identify_unassigned = TRUE,
-                     norm_method = ifelse(using_seurat,
-                                          "rank",
-                                          "scale"),
-                     covar = NULL,
-                     load_model = NULL,
-                     save_model = NULL,
-                     param_grid = expand.grid(
-                       mtry = as.integer(seq(
-                         from = round(0.25*length(markers)),
-                         to = round(0.9*length(markers)),
-                         length.out = 8)),
-                       splitrule = "gini",
-                       min.node.size = seq(1, 6, 2),
-                       num.trees = seq(200, 500, 100)),
-                     n_cv_folds = 5,
-                     # save_adapted_reference    OBS: ADD THIS ARGUMENT!
-                     unassigned_name = "unassigned",
-                     train_on_unassigned = ifelse(using_seurat,
-                                                  FALSE,
-                                                  TRUE),
-                     n_cores = 2,
-                     seed = 332,
-                     verbose = TRUE) {
-# TODO: Remove 0 columns
+cyDefine <- function(
+    reference,
+    query,
+    markers,
+    using_seurat = FALSE,
+    adapt_reference = ifelse(
+      using_seurat,
+      TRUE,
+      FALSE),
+    batch_correct = TRUE,
+    identify_unassigned = TRUE,
+    norm_method = ifelse(
+      using_seurat,
+      "rank",
+      "scale"),
+    covar = NULL,
+    xdim = 8,
+    ydim = 8,
+    rlen = 10,
+    load_model = NULL,
+    save_model = NULL,
+    param_grid = expand.grid(
+      mtry = as.integer(seq(
+        from = round(0.25*length(markers)),
+        to = round(0.9*length(markers)),
+        length.out = 8)),
+      splitrule = "gini",
+      min.node.size = seq(1, 6, 2),
+      num.trees = seq(200, 500, 100)),
+    n_cv_folds = 5,
+    # save_adapted_reference
+    #TODO: ADD THIS ARGUMENT!
+    unassigned_name = "unassigned",
+    train_on_unassigned = ifelse(
+      using_seurat,
+      FALSE,
+      TRUE),
+      n_cores = 2,
+      seed = 332,
+      verbose = TRUE) {
+  # TODO: Remove 0 columns
   if (adapt_reference) {
 
     if (verbose) message("Adapting reference to query marker panel")
@@ -78,41 +86,50 @@ cyDefine <- function(reference,
   if (batch_correct) {
 
     # Batch correction via cyCombine
-    corrected <- batch_correct(reference = reference,
-                               query = query,
-                               markers = markers,
-                               norm_method = norm_method,
-                               seed = seed,
-                               verbose = verbose)
+    corrected <- batch_correct(
+      reference = reference,
+      query = query,
+      markers = markers,
+      norm_method = norm_method,
+      seed = seed,
+      xdim = xdim,
+      ydim = ydim,
+      rlen = rlen,
+      verbose = verbose
+      )
     reference <- corrected$reference
     query <- corrected$query
 
   }
 
   # Canonical cell type assignment
-  query <- classify_cells(reference = reference,
-                          query = query,
-                          markers = markers,
-                          unassigned_name = unassigned_name,
-                          load_model = load_model,
-                          save_model = save_model,
-                          param_grid = param_grid,
-                          n_cv_folds = n_cv_folds,
-                          n_cores = n_cores,
-                          seed = seed,
-                          verbose = verbose)
+  query <- classify_cells(
+    reference = reference,
+    query = query,
+    markers = markers,
+    unassigned_name = unassigned_name,
+    load_model = load_model,
+    save_model = save_model,
+    param_grid = param_grid,
+    n_cv_folds = n_cv_folds,
+    n_cores = n_cores,
+    seed = seed,
+    verbose = verbose
+    )
 
 
   # Identification of unassigned cells
   if (identify_unassigned) {
 
-    query <- identify_unassigned(query = query,
-                                 reference = reference,
-                                 markers = markers,
-                                 unassigned_name = unassigned_name,
-                                 train_on_unassigned = train_on_unassigned,
-                                 seed = seed,
-                                 verbose = verbose)
+    query <- identify_unassigned(
+      query = query,
+      reference = reference,
+      markers = markers,
+      unassigned_name = unassigned_name,
+      train_on_unassigned = train_on_unassigned,
+      seed = seed,
+      verbose = verbose
+      )
   }
 
   return (query)

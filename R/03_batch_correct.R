@@ -9,13 +9,17 @@
 #' @return Named list of tibbles of batch corrected reference and query data
 #' @export
 #'
-batch_correct <- function(reference,
-                          query,
-                          markers,
-                          covar = NULL,
-                          norm_method = "scale",
-                          seed = 332,
-                          verbose = TRUE) {
+batch_correct <- function(
+    reference,
+    query,
+    markers,
+    covar = NULL,
+    norm_method = "scale",
+    seed = 332,
+    xdim = 8,
+    ydim = 8,
+    rlen = 10,
+    verbose = TRUE) {
   check_colnames(colnames(reference), c("celltype", markers))
   check_colnames(colnames(query), c(markers))
 
@@ -110,9 +114,11 @@ batch_correct <- function(reference,
   corrected <- cyCombine::batch_correct(
     df = uncorrected,
     markers = markers,
+    xdim = xdim,
+    ydim = ydim,
     norm_method = norm_method, # "rank" is recommended when heavy batch effects
     covar = covar,
-    rlen = 10, # higher values recommended if 10 does not appear to perform well
+    rlen = rlen, # higher values recommended if 10 does not appear to perform well
     seed = seed
   )
 

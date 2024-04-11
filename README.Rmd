@@ -15,7 +15,13 @@ knitr::opts_chunk$set(
 
 # cyDefine 
 
-----
+`cyDefine` robustly identifies canonical cell types as well as unassigned (and potentially novel) cells in various single-cell cytometry datasets.
+
+## Article
+
+A preprint of `cyDefine` is available [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=43s).
+
+Please cite with `citation("cyDefine")`
 
 
 ## Install from GitHub
@@ -23,23 +29,24 @@ knitr::opts_chunk$set(
 ``` {r, eval = FALSE}
 # To ensure Rstudio looks up BioConductor packages run:
 setRepositories(ind = c(1:6, 8))
-
-# Install dependency cyCombine
+# Install cyCombine dependency
 remotes::install_github("biosurf/cyCombine")
-# Then install cyDefine with
+
+# Install cyDefine
 remotes::install_github("claradrachmann/cyDefine", build_vignettes = TRUE)
 ```
 
-<!--
-## Article
+## Documentation
 
-## Vignettes
--->
+To view documentation for the version of this package installed in your system, start R and enter:
 
-
+```{r vignettes, eval=FALSE}
+browseVignettes("cyDefine")
+```
 
 ## Usage
 
-Here we introduce the general usecase of cyDefine. 
-Please visit the vignettes for more detailed workflows.
+Please see the vignettes for a detailed description of usage.
+
+Here is a quick run-through of the functions:
 

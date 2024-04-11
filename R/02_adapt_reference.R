@@ -103,6 +103,7 @@ map_marker_names <- function(query,
       not_in_ref <- not_in_ref[not_in_ref %!in% old_names]
     } else {
       (old_names <- c())
+      new_names <- c()
     }
 
     # if still un-mapped markers, check minor differences in names
