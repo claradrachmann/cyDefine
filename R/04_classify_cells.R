@@ -84,7 +84,14 @@ classify_cells <- function(reference,
     if (verbose) {
       message("Loading saved model: ", load_model)
     }
-    rf_model <- readRDS(load_model)
+    if (endsWith(toupper(load_model), "RDS")) {
+      rf_model <- readRDS(load_model)
+    } else if (endsWith(toupper(load_model), "RDA")) {
+      load(load_model)
+      model_name <- gsub("\\..*$", "", basename(load_model))
+      rf_model <- eval(parse(text = model_name))
+    }
+
   } else {
     # stratified cross-validation
     set.seed(seed)

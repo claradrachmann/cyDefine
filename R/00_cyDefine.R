@@ -31,38 +31,43 @@
 #' as "model_prediction".
 #' @export
 #'
-cyDefine <- function(reference,
-                     query,
-                     markers,
-                     using_seurat = FALSE,
-                     adapt_reference = ifelse(using_seurat,
-                                              TRUE,
-                                              FALSE),
-                     batch_correct = TRUE,
-                     identify_unassigned = TRUE,
-                     norm_method = ifelse(using_seurat,
-                                          "rank",
-                                          "scale"),
-                     covar = NULL,
-                     load_model = NULL,
-                     save_model = NULL,
-                     param_grid = expand.grid(
-                       mtry = as.integer(seq(
-                         from = round(0.25*length(markers)),
-                         to = round(0.9*length(markers)),
-                         length.out = 8)),
-                       splitrule = "gini",
-                       min.node.size = seq(1, 6, 2),
-                       num.trees = seq(200, 500, 100)),
-                     n_cv_folds = 5,
-                     # save_adapted_reference    OBS: ADD THIS ARGUMENT!
-                     unassigned_name = "unassigned",
-                     train_on_unassigned = ifelse(using_seurat,
-                                                  FALSE,
-                                                  TRUE),
-                     n_cores = 2,
-                     seed = 332,
-                     verbose = TRUE) {
+cyDefine <- function(
+    reference,
+    query,
+    markers,
+    using_seurat = FALSE,
+    adapt_reference = ifelse(
+      using_seurat,
+      TRUE,
+      FALSE),
+    batch_correct = TRUE,
+    identify_unassigned = TRUE,
+    norm_method = ifelse(
+      using_seurat,
+      "rank",
+      "scale"),
+    covar = NULL,
+    load_model = NULL,
+    save_model = NULL,
+    param_grid = expand.grid(
+      mtry = as.integer(seq(
+        from = round(0.25*length(markers)),
+        to = round(0.9*length(markers)),
+        length.out = 8)),
+      splitrule = "gini",
+      min.node.size = seq(1, 6, 2),
+      num.trees = seq(200, 500, 100)),
+    n_cv_folds = 5,
+    # save_adapted_reference
+    #TODO: ADD THIS ARGUMENT!
+    unassigned_name = "unassigned",
+    train_on_unassigned = ifelse(
+      using_seurat,
+      FALSE,
+      TRUE),
+      n_cores = 2,
+      seed = 332,
+      verbose = TRUE) {
 
   if (adapt_reference) {
 
