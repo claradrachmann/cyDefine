@@ -14,3 +14,32 @@ knitr::opts_chunk$set(
 ```
 
 # cyDefine 
+
+----
+
+
+## Install from GitHub
+
+``` {r, eval = FALSE}
+# To ensure Rstudio looks up BioConductor packages run:
+setRepositories(ind = c(1:6, 8))
+
+# Install dependency cyCombine
+remotes::install_github("biosurf/cyCombine")
+# Then install cyDefine with
+remotes::install_github("claradrachmann/cyDefine", build_vignettes = TRUE)
+```
+
+<!--
+## Article
+
+## Vignettes
+-->
+
+
+
+## Usage
+
+Here we introduce the general usecase of cyDefine. 
+Please visit the vignettes for more detailed workflows.
+

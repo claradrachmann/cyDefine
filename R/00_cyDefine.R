@@ -63,7 +63,7 @@ cyDefine <- function(reference,
                      n_cores = 2,
                      seed = 332,
                      verbose = TRUE) {
-
+# TODO: Remove 0 columns
   if (adapt_reference) {
 
     if (verbose) message("Adapting reference to query marker panel")

@@ -92,7 +92,8 @@ map_marker_names <- function(query,
         "TCRV7.2" = "TCR-V-7.2", "TRAV1-2" = "TCR-V-7.2", "Vg9" = "TCR-V-9", "TCRVg9" = "TCR-V-9",
         "TCRVa24-JaQ" = "TCR-V-24-J-18", "TCRVa24-Ja18" = "TCR-V-24-J-18",
         "CCR9" = "CD199", "CDw199" = "CD199", "ICOS" = "CD278",
-        "LAG3" = "CD223", "CD40L" = "CD154", "CD40LG" = "CD154", "CD41A" = "CD41"
+        "LAG3" = "CD223", "CD40L" = "CD154", "CD40LG" = "CD154", "CD41A" = "CD41",
+        "PDL2" = "CD273"
       )
 
       old_names <- intersect(names(common_names), not_in_ref)

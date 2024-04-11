@@ -105,7 +105,7 @@ plot_umap <- function(reference,
     reference <- reference %>%
       dplyr::slice_sample(n = min(sample_n, nrow(reference)))
     query <- query %>%
-      dplyr::slice_sample(n = min(sample_n, nrow(reference)))
+      dplyr::slice_sample(n = min(sample_n, nrow(query)))
   }
 
   if (build_umap_on == "both") {
