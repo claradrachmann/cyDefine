@@ -13,15 +13,6 @@
 "seurat_reference"
 
 
-#' An example of a model saved by cyDefine
-#'
-#' Trained using caret::train(). For testing purposes.
-#'
-#' @format A caret model object of class 'train'
-#'
-"example_model"
-
-
 #' An example of a CyTOF reference, already prepared by cyDefine as seen in
 #' ´data-raw/example_reference.R´
 #'
@@ -40,7 +31,7 @@
 "example_query"
 
 
-#' The marker panel of `example_reference` and `example_query`, i.e. the panel
+#' The marker panel of `example_reference` and `example_query`, i.e., the panel
 #' of the Z2YR CyTOF dataset.
 #'
 #' @format A character vector of length 42

@@ -88,6 +88,8 @@ MAD_max_distance <- function(distances, MAD_factor = 3) {
 identify_unassigned <- function(reference,
                                 query,
                                 markers,
+                                num.threads = 4,
+                                mtry = 22,
                                 train_on_unassigned = TRUE,
                                 unassigned_name = "unassigned",
                                 pct_expl_var = 0.95,
@@ -163,9 +165,10 @@ identify_unassigned <- function(reference,
           reference = celltype_ref,
           query = celltype_query,
           markers = markers,
+          num.threads = num.threads,
+          mtry = mtry,
           unassigned_name = FALSE,
           return_pred = TRUE,
-          n_cv_folds = 2,
           # n_trees = 50,
           verbose = FALSE
         )
@@ -293,8 +296,9 @@ identify_unassigned <- function(reference,
       dplyr::mutate(predicted_celltype = ifelse(distance > max_distance,
         "unassigned",
         as.character(model_prediction)
-      ))
+      )) %>%
+      dplyr::arrange(id)
   }
 
-  return(query %>% dplyr::arrange(id))
+  return(query)
 }

@@ -7,6 +7,7 @@
 
 #' weighted Mahalanobis distance
 #'
+#' @noRd
 wmahalanobis <- function(x, center, cov, weight) {
   if (is.vector(x)) {
     x <- matrix(x, ncol = length(x))
@@ -19,6 +20,13 @@ wmahalanobis <- function(x, center, cov, weight) {
   retval
 }
 
+#' Check for ID column
+#'
+#' @noRd
+check_id <- function(df) {
+  if (!"id" %in% colnames(df)) df$id <- seq_len(nrow(df))
+  return(df)
+}
 
 #' Check package
 #'
