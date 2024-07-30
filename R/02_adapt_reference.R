@@ -308,10 +308,36 @@ identify_similar_populations <- function(reference,
   }
 
   # stratified down-sampling to 1000 cells per type
-  ref_val <- reference %>%
+  tmp_ref <- reference %>%
     dplyr::group_by(celltype) %>%
-    dplyr::group_modify(~ dplyr::slice_sample(.x, n = min(floor(nrow(.x) / 2), 1000))) %>%
+    dplyr::slice(if (dplyr::n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
     dplyr::ungroup()
+
+  # stratified data partition
+  train_idx <- caret::createDataPartition(tmp_ref$celltype,
+    list = FALSE,
+    p = 0.5
+  )
+
+  if (optimize_params) {
+    param_grid <- expand.grid(
+      mtry = as.integer(seq(
+        from = round(0.25 * length(markers)),
+        to = round(0.9 * length(markers)),
+        length.out = 8
+      )),
+      min.node.size = seq(1, 6, 2),
+      splitrule = "gini",
+      num.trees = seq(200, 500, 100)
+    )
+  } else {
+    param_grid <- expand.grid(
+      mtry = as.integer(0.5 * length(markers)),
+      min.node.size = 20,
+      splitrule = "gini",
+      num.trees = 300
+    )
+  }
 
   y_pred <- classify_cells(
     reference = reference[reference$id %!in% ref_val$id, ],

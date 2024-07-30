@@ -1,17 +1,21 @@
 bibentry(
     bibtype = "Article",
-    title = "Title",
+    title = "cyDefine enables reproducible cross-technology identification of cell populations in single cell cytometry data",
     author = personList(
-        as.person("Author1"),
-        as.person("Author2")
+        as.person("Clara Drachmann"),
+        as.person("S\u{00F8}ren Helweg Dam"),
+        as.person("Kristoffer Vitting-Seerup"),
+        as.person("Christina Bligaard Pedersen"),
+        as.person("Michael Leipold"),
+        as.person("Lars Rønn Olsen")
         ),
-    year = 2023,
-    journal = "BMC Biology",
-    doi = "10.1186/s12915-023-01724-w",
+    year = 2024,
+    journal = "Unpublished",
+    doi = "",
     textVersion =
     paste(
-        "Authors",
-        "Title",
-        "BioRxiv (2024)"
+        "Drachmann, C, Dam, S.H., Vitting-Seerup, K., Pedersen, C.B., Leipold, M., Olsen, L.R.",
+        "cyDefine enables reproducible cross-technology identification of cell populations in single cell cytometry data",
+        "Unpublished (2024)"
         )
     )
