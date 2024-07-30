@@ -67,7 +67,7 @@ plot_umap <- function(reference,
                       build_umap_on = "both",
                       shuffle = TRUE,
                       down_sample = TRUE,
-                      sample_n = 100000,
+                      sample_n = 10000,
                       return_data = FALSE,
                       seed = 332,
                       verbose = TRUE) {

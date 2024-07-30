@@ -41,26 +41,20 @@ cyDefine <- function(
       TRUE,
       FALSE),
     batch_correct = TRUE,
+    xdim = 8, ydim = 8,
     identify_unassigned = TRUE,
     norm_method = ifelse(
       using_seurat,
       "rank",
       "scale"),
     covar = NULL,
-    xdim = 8,
-    ydim = 8,
-    rlen = 10,
     load_model = NULL,
     save_model = NULL,
-    param_grid = expand.grid(
-      mtry = as.integer(seq(
-        from = round(0.25*length(markers)),
-        to = round(0.9*length(markers)),
-        length.out = 8)),
-      splitrule = "gini",
-      min.node.size = seq(1, 6, 2),
-      num.trees = seq(200, 500, 100)),
-    n_cv_folds = 5,
+    mtry = 22,
+    splitrule = "gini",
+    min.node.size = 1,
+    num.trees = 300,
+    num.threads = 4,
     # save_adapted_reference
     #TODO: ADD THIS ARGUMENT!
     unassigned_name = "unassigned",
@@ -68,19 +62,22 @@ cyDefine <- function(
       using_seurat,
       FALSE,
       TRUE),
-      n_cores = 2,
-      seed = 332,
-      verbose = TRUE) {
-  # TODO: Remove 0 columns
+    seed = 332,
+    verbose = TRUE) {
+
   if (adapt_reference) {
 
     if (verbose) message("Adapting reference to query marker panel")
 
-    reference <- adapt_reference(reference = reference,
-                                 query = query,
-                                 markers = markers,
-                                 using_seurat = using_seurat,
-                                 verbose = verbose)
+    reference <- adapt_reference(
+      reference = reference,
+      query = query,
+      markers = markers,
+      num.threads = num.threads,
+      mtry = mtry,
+      using_seurat = using_seurat,
+      verbose = verbose
+      )
   }
 
   if (batch_correct) {
@@ -90,11 +87,10 @@ cyDefine <- function(
       reference = reference,
       query = query,
       markers = markers,
-      norm_method = norm_method,
-      seed = seed,
       xdim = xdim,
       ydim = ydim,
-      rlen = rlen,
+      norm_method = norm_method,
+      seed = seed,
       verbose = verbose
       )
     reference <- corrected$reference
@@ -110,9 +106,11 @@ cyDefine <- function(
     unassigned_name = unassigned_name,
     load_model = load_model,
     save_model = save_model,
-    param_grid = param_grid,
-    n_cv_folds = n_cv_folds,
-    n_cores = n_cores,
+    mtry = mtry,
+    splitrule = splitrule,
+    min.node.size = min.node.size,
+    num.trees = num.trees,
+    num.threads = num.threads,
     seed = seed,
     verbose = verbose
     )
@@ -125,6 +123,8 @@ cyDefine <- function(
       query = query,
       reference = reference,
       markers = markers,
+      mtry = mtry,
+      num.threads = num.threads,
       unassigned_name = unassigned_name,
       train_on_unassigned = train_on_unassigned,
       seed = seed,
@@ -132,7 +132,7 @@ cyDefine <- function(
       )
   }
 
-  return (query)
+  return (list("query" = query, "reference" = reference))
 }
 
 

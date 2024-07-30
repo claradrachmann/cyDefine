@@ -15,6 +15,9 @@
 #' @param return_unrecognized Boolean specifying whether to return names of
 #' unrecognized markers.
 #'
+#' @importFrom dplyr rename_at vars all_of select
+#' @importFrom stringr str_replace_all
+#'
 #' @return Tibble of query data modified to make marker names match reference.
 #' If return_unrecognized is TRUE, returns a list with this tibble and a
 #' character vector with the unrecognized markers.
@@ -29,14 +32,15 @@
 #' )
 #'
 #' @export
-map_marker_names <- function(query,
-                             query_markers,
-                             ref_markers = seurat_markers,
-                             using_seurat = TRUE,
-                             map_specific_from = NULL,
-                             map_specific_to = NULL,
-                             return_unrecognized = FALSE,
-                             verbose = TRUE) {
+map_marker_names <- function(
+    query,
+    query_markers,
+    ref_markers = cyDefine::seurat_markers,
+    using_seurat = TRUE,
+    map_specific_from = NULL,
+    map_specific_to = NULL,
+    return_unrecognized = FALSE,
+    verbose = TRUE) {
   # check required columns
   check_colnames(
     avail_colnames = colnames(query),
@@ -86,14 +90,14 @@ map_marker_names <- function(query,
         "IL-7R" = "CD127", # "B220"="CD45", "CD45R"="CD45",
         "IL-7Ra" = "CD127", "NKP46" = "CD335", "GYPA" = "CD235A",
         "GPA" = "CD235A", "Ter119" = "CD235A", "TRAIL" = "CD253",
-        "TNFSF10" = "CD253", "CXCR4" = "CD184", "OX40" = "CD134",
-        "TNFRSF4" = "CD134", "ACT35" = "CD134", "CCR5" = "CD195",
+        "TNFSF10" = "CD253", "CXCR4" = "CD184", "OX40" = "CD134",# "CCR7" = "CD197",
+        "TNFRSF4" = "CD134", "ACT35" = "CD134", "CCR5" = "CD195", #"CXCR3" = "CD183",
         "CXCR6" = "CD186", "TCRVa7.2" = "TCR-V-7.2", "Va7.2" = "TCR-V-7.2",
         "TCRV7.2" = "TCR-V-7.2", "TRAV1-2" = "TCR-V-7.2", "Vg9" = "TCR-V-9", "TCRVg9" = "TCR-V-9",
         "TCRVa24-JaQ" = "TCR-V-24-J-18", "TCRVa24-Ja18" = "TCR-V-24-J-18",
         "CCR9" = "CD199", "CDw199" = "CD199", "ICOS" = "CD278",
         "LAG3" = "CD223", "CD40L" = "CD154", "CD40LG" = "CD154", "CD41A" = "CD41",
-        "PDL2" = "CD273"
+        "PDL2" = "CD273", "CD3" = "CD3E"
       )
 
       old_names <- intersect(names(common_names), not_in_ref)
@@ -102,7 +106,7 @@ map_marker_names <- function(query,
       # update not_in_ref
       not_in_ref <- not_in_ref[not_in_ref %!in% old_names]
     } else {
-      (old_names <- c())
+      old_names <- c()
       new_names <- c()
     }
 
@@ -162,7 +166,7 @@ map_marker_names <- function(query,
   if (return_unrecognized) {
     return(list(query, not_in_ref))
   } else {
-    (return(query))
+    return(query)
   }
 }
 
@@ -171,8 +175,8 @@ map_marker_names <- function(query,
 
 #' Merge groups of similar cell populations
 #'
-#' @param populations_to_merge Tibble ???
-#' @param reference Tibble of reference data (cells in rows, markers in columns)
+#' @param populations_to_merge A data frame of clustered populations
+#' @param reference Data frame of reference data (cells in rows, markers in columns)
 #' @param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
 #' @family adapt
 merge_populations <- function(populations_to_merge,
@@ -265,25 +269,29 @@ get_merged_label <- function(populations, using_seurat = TRUE) {
 #' @param min_f1 desc
 #' @param seed desc
 #' @param verbose desc
+#' @importFrom dplyr slice_sample group_by group_modify ungroup
+#' @importFrom igraph components graph_from_data_frame
 #'
 #' @return A tibble of similar populations
 #'
 identify_similar_populations <- function(reference,
                                          markers,
-                                         optimize_params = FALSE,
+                                         num.threads = 4,
+                                         mtry = mtry,
                                          min_f1 = 0.7,
                                          seed = 332,
                                          verbose = TRUE) {
   check_colnames(colnames(reference), c(markers, "celltype"))
 
   # check number of cells of each cell type
-  celltype_counts <- summary(factor(reference$celltype))
+  celltype_counts <- table(reference$celltype)
+  small_populations <- names(celltype_counts[celltype_counts < 5])
+  if (length(small_populations) > 0) {
 
-  if (length(celltype_counts[celltype_counts < 5]) > 0) {
     if (verbose) {
       message(
         "OBS: Less than 5 cells of type(s):\n",
-        paste(names(celltype_counts[celltype_counts < 5]),
+        paste(small_populations,
           collapse = "\n"
         ),
         "\nare present in the reference. These will not be ",
@@ -291,10 +299,7 @@ identify_similar_populations <- function(reference,
       )
     }
 
-    reference <- reference %>%
-      dplyr::group_by(celltype) %>%
-      dplyr::filter(dplyr::n() >= 5) %>%
-      dplyr::ungroup()
+    reference <- reference[reference$celltype %!in% small_populations, ]
   }
 
 
@@ -303,51 +308,24 @@ identify_similar_populations <- function(reference,
   }
 
   # stratified down-sampling to 1000 cells per type
-  tmp_ref <- reference %>%
-    group_by(celltype) %>%
-    dplyr::slice(if (n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
-    ungroup()
-
-  # stratified data partition
-  train_idx <- caret::createDataPartition(tmp_ref$celltype,
-    list = FALSE,
-    p = 0.5
-  )
-
-  if (optimize_params) {
-    param_grid <- expand.grid(
-      mtry = as.integer(seq(
-        from = round(0.25 * length(markers)),
-        to = round(0.9 * length(markers)),
-        length.out = 8
-      )),
-      min.node.size = seq(1, 6, 2),
-      splitrule = "gini",
-      num.trees = seq(200, 500, 100)
-    )
-  } else {
-    param_grid <- expand.grid(
-      mtry = as.integer(0.5 * length(markers)),
-      min.node.size = 20,
-      splitrule = "gini",
-      num.trees = 300
-    )
-  }
-
+  ref_val <- reference %>%
+    dplyr::group_by(celltype) %>%
+    dplyr::group_modify(~ dplyr::slice_sample(.x, n = min(floor(nrow(.x) / 2), 1000))) %>%
+    dplyr::ungroup()
 
   y_pred <- classify_cells(
-    reference = tmp_ref[train_idx, ],
-    query = tmp_ref[-train_idx, ],
+    reference = reference[reference$id %!in% ref_val$id, ],
+    query = ref_val,
     markers = markers,
-    n_cv_folds = ifelse(optimize_params, 5, "none"),
-    param_grid = param_grid,
+    num.threads = num.threads,
+    mtry = mtry,
     return_pred = TRUE,
     seed = seed,
     verbose = FALSE
   )
 
   # ensure same levels for pred and obs
-  y_test <- factor(tmp_ref[-train_idx, ]$celltype)
+  y_test <- factor(ref_val$celltype)
   y_pred <- factor(y_pred,
     levels = levels(y_test)
   )
@@ -381,12 +359,12 @@ identify_similar_populations <- function(reference,
       igraph::graph_from_data_frame(similar_population_pairs)
     )$membership
 
-    similar_populations <- dplyr::tibble(
+    similar_populations <- tibble::tibble(
       popu = names(population_clusters),
       cluster = population_clusters
     )
   } else {
-    return(dplyr::tibble())
+    return(tibble::tibble())
   }
 
   return(similar_populations)
@@ -395,64 +373,36 @@ identify_similar_populations <- function(reference,
 
 
 
-# OBS: do documentation
-#' Title
+#' Exclude Redundant Cell Populations from Reference
 #'
-#' @param reference
-#' @param query
-#' @param markers
-#' @param min_cells
-#' @param min_pct
-#' @param optimize_params
-#' @param seed
-#' @param verbose
+#' This function filters out redundant cell types from a reference dataset based on their counts and proportions in the query dataset. It uses an initial projection to classify the cell types and then excludes those with counts below a specified minimum or a proportion below a specified percentage.
 #'
-#' @return
+#' @param min_cells An integer specifying the minimum number of cells for a cell type to be retained. Default is 50.
+#' @param min_pct A numeric value specifying the minimum percentage of cells for a cell type to be retained. Default is 0.001.
+#' @inheritParams adapt_reference
+#' @return A data frame containing the filtered reference dataset with redundant cell types excluded.
 #' @export
 #'
-#' @examples
 excl_redundant_populations <- function(reference,
                                        query,
                                        markers,
+                                       num.threads = 4,
+                                       mtry = 22,
                                        min_cells = 50,
                                        min_pct = 0.001,
-                                       optimize_params = FALSE,
                                        seed = 332,
                                        verbose = TRUE) {
-  if (optimize_params) {
-    param_grid <- expand.grid(
-      mtry = as.integer(seq(
-        from = round(0.25 * length(markers)),
-        to = round(0.9 * length(markers)),
-        length.out = 8
-      )),
-      min.node.size = seq(1, 6, 2),
-      splitrule = "gini",
-      num.trees = seq(200, 500, 100)
-    )
-  } else {
-    param_grid <- expand.grid(
-      mtry = as.integer(0.5 * length(markers)),
-      min.node.size = 20,
-      splitrule = "gini",
-      num.trees = 300
-    )
-  }
 
   if (verbose) {
     message("Making initial projection to filter out redundant cell types of the reference")
   }
 
   y_pred <- classify_cells(
-    # stratified down-sampling to 500 cells per type
-    reference <- reference %>%
-      dplyr::group_by(celltype) %>%
-      dplyr::slice(if (n() >= 500) sample(dplyr::row_number(), 500) else dplyr::row_number()) %>%
-      ungroup(),
+    reference = reference,
     query = query,
     markers = markers,
-    n_cv_folds = ifelse(optimize_params, 5, "none"), # do not do cross-validation
-    param_grid = param_grid,
+    num.threads = num.threads,
+    mtry = mtry,
     return_pred = TRUE,
     seed = seed,
     verbose = FALSE
@@ -463,13 +413,13 @@ excl_redundant_populations <- function(reference,
     levels = unique(reference$celltype)
   ))
 
-  excl_celltypes <- dplyr::tibble(
+  excl_celltypes <- tibble::tibble(
     celltype = names(celltype_counts),
     n = celltype_counts
   ) %>%
     dplyr::mutate(pct = 100 * n / sum(n)) %>%
     dplyr::filter(n < min_cells | pct < min_pct) %>%
-    pull(celltype)
+    dplyr::pull(celltype)
 
   if (verbose) {
     if (length(excl_celltypes) == 0) {
@@ -482,8 +432,7 @@ excl_redundant_populations <- function(reference,
     }
   }
 
-  reference <- reference %>%
-    dplyr::filter(celltype %!in% excl_celltypes)
+  reference <- reference[reference$celltype %!in% excl_celltypes]
 
   return(reference)
 }
@@ -506,19 +455,16 @@ excl_redundant_populations <- function(reference,
 #' @inheritParams map_marker_names
 #' @inheritParams merge_populations
 #' @inheritParams identify_similar_populations
+#' @inheritParams classify_cells
+#' @importFrom stats aggregate
 #'
 #' @return Tibble of adapted reference
 #' @export
 #'
 adapt_reference <- function(reference = seurat_reference,
-                            query,
                             markers,
                             using_seurat = TRUE,
                             initial_project = FALSE,
-                            optimize_params = ifelse(using_seurat,
-                              FALSE,
-                              TRUE
-                            ),
                             exclude_celltypes = c(
                               "Doublet",
                               "Platelet",
@@ -531,25 +477,14 @@ adapt_reference <- function(reference = seurat_reference,
                             ),
                             min_f1 = 0.7,
                             seed = 332,
+                            num.threads = 4,
+                            mtry = 22,
                             verbose = TRUE) {
   # remove excluded cell types
-  reference <- reference %>%
-    dplyr::rename("celltype" = !!celltype_col) %>%
-    dplyr::filter(celltype %!in% exclude_celltypes)
+  names(reference)[names(reference) == celltype_col] <- "celltype"
+  reference <- reference[reference$celltype %!in% exclude_celltypes, ]
 
-  # Run initial projection to exclude redundant cell types
-  if (initial_project) {
-    reference <- excl_redundant_populations(
-      reference = reference,
-      query = query,
-      markers = markers,
-      min_cells = 50,
-      min_pct = 0.05,
-      optimize_params = optimize_params,
-      seed = seed,
-      verbose = verbose
-    )
-  }
+  reference <- check_id(reference)
 
   # check for similar cell types for as long as new merges are performed
   set.seed(seed)
@@ -561,10 +496,11 @@ adapt_reference <- function(reference = seurat_reference,
     }
 
     # find similar populations for all vs all remaining populations
-    similar_populations <- identify_similar_populations(
+    similar_populations <- cyDefine:::identify_similar_populations(
       reference = reference,
       markers = markers,
-      optimize_params = optimize_params,
+      mtry = mtry,
+      num.threads = num.threads,
       min_f1 = min_f1
     )
 
@@ -583,11 +519,13 @@ adapt_reference <- function(reference = seurat_reference,
       if (verbose) {
         message(
           "Merging:\n\t",
-          similar_populations %>%
-            dplyr::group_by(cluster) %>%
-            dplyr::summarize(popu_names = paste(popu, collapse = ", ")) %>%
-            pull(popu_names) %>%
-            paste(collapse = "\n\t"), "\n"
+          stats::aggregate(
+            popu ~ cluster,
+            data = similar_populations,
+            FUN = function(x) paste(x, collapse = ", ")
+            )[, 2] |>
+            paste(collapse = "\n\t")
+          , "\n"
         )
       }
     } else {
@@ -598,7 +536,7 @@ adapt_reference <- function(reference = seurat_reference,
   }
 
   if (verbose) {
-    message("\nReference computed!")
+    message("\nReference adapted!")
   }
 
   return(reference)

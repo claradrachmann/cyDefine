@@ -14,7 +14,9 @@ batch_correct <- function(
     query,
     markers,
     covar = NULL,
+    label = NULL,
     norm_method = "scale",
+    ref.batch = NULL,
     seed = 332,
     xdim = 8,
     ydim = 8,
@@ -114,13 +116,17 @@ batch_correct <- function(
   corrected <- cyCombine::batch_correct(
     df = uncorrected,
     markers = markers,
+    label = label,
     xdim = xdim,
     ydim = ydim,
-    norm_method = norm_method, # "rank" is recommended when heavy batch effects
+    ref.batch = ref.batch,
+    norm_method = norm_method,
     covar = covar,
-    rlen = rlen, # higher values recommended if 10 does not appear to perform well
+    rlen = rlen,
     seed = seed
   )
+
+  rm(uncorrected)
 
   corrected_ref <- corrected %>%
     dplyr::filter(sample %in% unique(reference$sample)) %>%

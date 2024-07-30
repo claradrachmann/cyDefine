@@ -4,12 +4,12 @@ Version: 0.0.0.9000
 Authors@R: c(
     person("Clara", "Drachmann", , "cladra@dtu.dk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9652-6300")),
+    person("Søren Helweg", "Dam", role = "aut",
+           comment = c(ORCID = "0000-0002-9895-0930")),
     person("Christina Bligaard", "Pedersen", role = "aut",
            comment = c(ORCID = "0000-0002-9895-0930")),
     person("Lars Rønn", "Olsen", role = "aut",
-           comment = c(ORCID = "0000-0002-6725-7850")),
-    person("Søren Helweg", "Dam", role = "aut",
-           comment = c(ORCID = "0000-0002-9895-0930"))
+           comment = c(ORCID = "0000-0002-6725-7850"))
   )
 Description: A package for robust identification of canonical cell types
     as well as unassigned (and potentially novel) cells in various
@@ -17,6 +17,7 @@ Description: A package for robust identification of canonical cell types
 License: MIT + file LICENSE
 Imports: 
     caret,
+    ranger,
     crfsuite,
     cyCombine,
     dplyr,
@@ -26,8 +27,6 @@ Imports:
     stringr,
     tidyr
 Suggests: 
-    doParallel,
-    foreach,
     ggplot2,
     igraph,
     knitr,
@@ -43,4 +42,4 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
 Depends: 
-    R (>= 3.5.0)
+    R (>= 4.0.0)
