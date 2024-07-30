@@ -9,10 +9,9 @@ cytometry datasets.
 
 ## Article
 
-A preprint of `cyDefine` is available
-[here](https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=43s).
+The manuscript for `cyDefine` is in preparation.
 
-Please cite with `citation("cyDefine")`
+Please cite with `citation("cyDefine")`.
 
 ## Install from GitHub
 
@@ -28,15 +27,18 @@ remotes::install_github("claradrachmann/cyDefine", build_vignettes = TRUE)
 
 ## Documentation
 
-To view documentation for the version of this package installed in your
-system, start R and enter:
+To view the documentation for using `cyDefine`, start R and enter:
 
 ``` r
 browseVignettes("cyDefine")
 ```
 
-## Usage
+<!-- ## Usage -->
+<!-- Please see the vignettes for a detailed description of usage. -->
+<!-- Here is a quick run-through of the main functionalities. -->
 
-Please see the vignettes for a detailed description of usage.
+## Report issues
 
-Here is a quick run-through of the functions:
+If you have any issues or questions regarding the use of `cyDefine`,
+please do not hesitate to raise an issue on GitHub. In this way, others
+may also benefit from the answers and discussions.
