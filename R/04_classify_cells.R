@@ -1,23 +1,53 @@
+compute_f1 <- function(y_pred, y_test) {
+  y_pred <- as.character(y_pred)
+  y_test <- as.character(y_test)
+  # Get the unique labels
+  labels <- unique(c(y_pred, y_test))
+
+  # Initialize a named vector to store the F1 score for each label
+  f1_scores <- numeric(length(labels))
+  names(f1_scores) <- labels
+
+  # Compute precision, recall, and F1 score for each label
+  for (i in seq_along(labels)) {
+    label <- labels[i]
+
+    # True positives, false positives, false negatives
+    tp <- sum(y_pred == label & y_test == label)
+    fp <- sum(y_pred != label & y_test == label)
+    fn <- sum(y_pred == label & y_test != label)
+
+    # Calculate precision and recall
+    precision <- ifelse((tp + fp) > 0, tp / (tp + fp), 0)
+    recall <- ifelse((tp + fn) > 0, tp / (tp + fn), 0)
+
+    # Calculate F1 score
+    f1_scores[i] <- ifelse((precision + recall) > 0, 2 * (precision * recall) / (precision + recall), 0)
+  }
+
+  return(f1_scores)
+}
+
+
+create_confusion_matrix <- function(y_pred, y_test) {
+  table(y_pred, y_test) %>%
+    as.data.frame() %>%
+    dplyr::rename(predicted = y_pred, observed = y_test, n = Freq)
+}
+
+
+
 #' Summary function for using macro-average F1-score as metric in caret::trainControl
 #'
-#' @inheritParams caret::defaultSummary
 #'
 #' @return Macro-average F1 score
 #'
-macroF1_summary <- function(data, lev, model = NULL) {
+macroF1_summary <- function(data) {
   # multiclass classification performance
-  perf <- crfsuite::crf_evaluation(
-    factor(data$pred, levels = lev),
-    factor(data$obs, levels = lev)
-  )
-
-  # make F1s of NA count as 0
-  f1 <- perf$bylabel$f1 %>%
-    tidyr::replace_na(0) %>%
-    mean()
-
+  f1 <- cyDefine:::compute_f1(data$pred, data$obs)
+  f1[is.na(f1)] <- 0
+  f1 <- mean(f1)
   names(f1) <- "macroF1"
-
   return(f1)
 }
 

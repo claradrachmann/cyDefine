@@ -15,8 +15,8 @@ get_distinct_colors <- function(populations, add_unassigned = TRUE) {
     "#1965B0", "#882E72", "#B2DF8A", "#B17BA6", "#A6761D",
     "#E7298A", "#55A1B1", "#E6AB02", "#7570B3", "#ba5ce3",
     "#FAE174", "#B5651D", "#E78AC3", "#aeae5c", "#FF7F00",
-    "#56ff0d", "#0C0C91", "#BEAED4", "#1e90ff", "#aa8282",
-    "#0AC8D4", "#808000", "#7800FA", "#00FAFA", "#641400",
+    "#56ff0d", "#AA0A0A", "#BEAED4", "#1e90ff", "#aa8282",
+    "#0AC8D4", "#808000", "#7800FA", "#00FAFA", "#641A00",
     "#8DD3C7", "#666666", "#999999", "#d4b7b7", "#8600bf",
     "#00bfff", "#ffff00", "#D4E1C8", "#D470C8", "#64C870",
     "#64C80C", "#0C00FA", "#FA00FA", "#707A00"
@@ -33,7 +33,25 @@ get_distinct_colors <- function(populations, add_unassigned = TRUE) {
   return(colors)
 }
 
+expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors = NULL) {
 
+  unique_celltypes <- sort(unique(adapted_celltypes))
+  if (is.null(colors)) {
+    return(get_distinct_colors(unique_celltypes))
+  }
+
+  if (!all(unique_celltypes %in% names(colors))) {
+    new_celltypes <- unique_celltypes[!unique_celltypes %in% names(colors)]
+    cell_counts <- table(original_celltypes)
+    colors[new_celltypes] <- sapply(new_celltypes, function(celltype) {
+      sub_cells <- unique(original_celltypes[adapted_celltypes == celltype])
+      sub_cell_counts <- cell_counts[sub_cells]
+      major_celltype <- names(sub_cell_counts[sub_cell_counts == max(sub_cell_counts)])
+      colors[major_celltype]
+    })
+  }
+  return(colors)
+}
 
 
 #' Visualize reference and query by UMAPs
@@ -391,3 +409,166 @@ plot_heatmap <- function(data,
 
   return(p)
 }
+
+#' Plot a Diagram from Merged Cell Types
+#'
+#' This function generates a diagram that visualizes the merging of cell types based on
+#' a provided list or data frame. The diagram illustrates how original cell types (nodes) merge into
+#' final cell types.
+#'
+#' @param input A `list` or `data.frame`. If a `data.frame`, it should have been processed using
+#'   `adapt_reference()` and must contain columns `cluster`, `celltype`, and `celltype_original`.
+#'   If a `list`, it should be structured such that each key represents a merged cell type and
+#'   each value is a vector of original cell types.
+#' @param colors A named vector where the names correspond to cell types (both original and merged),
+#'   and the values are color codes to be used for filling the nodes in the diagram.
+#' @param fontcolor_nodes A named vector (optional) that specifies font colors for specific nodes.
+#'   If a node's font color is not provided in this vector, `default_fontcolor` will be used.
+#' @param default_fontcolor A `character` string specifying the default font color to be used
+#'   for nodes that are not included in `fontcolor_nodes`. Default is `"black"`.
+#'
+#' @return A rendered diagram produced by `DiagrammeR::grViz()` that visually represents the merging
+#'   of cell types. The diagram includes nodes for both original and merged cell types, with edges
+#'   showing the relationship between them.
+#'
+#' @details The function first checks if the input is a data frame or a list. If it is a data frame,
+#'   it calls `get_merge_list()` to convert it into the required list structure. The function then
+#'   generates a DOT language script to define the diagram, including node styling, edge creation,
+#'   and graph layout. Finally, it uses `DiagrammeR::grViz()` to render the flowchart.
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `adapted_reference` is a preprocessed tibble from `adapt_reference()`
+#' fontcolor_nodes <- c("NK" = "white", "NK Proliferating / NK" = "white")
+#'
+#' plot_diagram(adapted_reference, fontcolor_nodes)
+#' }
+#'
+#' @seealso `adapt_reference()`, `get_merge_list()`
+#'
+#' @export
+plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_fontcolor = "black") {
+
+  cyDefine:::check_package("DiagrammeR")
+
+  if ("data.frame" %in% class(input)) {
+    merge_list <- get_merge_list(input)
+  } else if (class(input) == "list") {
+    merge_list <- input
+  }
+
+
+  if (all(c("celltype", "celltype_original") %in% names(input))) {
+    colors <- expand_colors(input$celltype, input$celltype_original, colors)
+  } else if (is.null(colors)) {
+    colors <- cyDefine::get_distinct_colors(unique(unlist(merge_list)))
+  } else if (!all(names(merge_list) %in% names(colors))) {
+    colors[names(merge_list)] <- sapply(names(merge_list), function(merged) {
+      colors[stringr::str_split(merged, " /")[[1]][1]]
+    })
+  }
+
+  rm(input)
+  # Initialize the diagram
+  diagram_code <- "
+    digraph flowchart {
+      # Global node styles
+      node [fontname = Helvetica, style = filled, color = black, shape = box];
+  "
+
+  # To track the incrementing value for node names
+  node_counter <- 0
+
+  # Function to get a unique node name by appending an incrementing value
+  get_unique_node_name <- function(node_name) {
+    node_counter <<- node_counter + 1
+    return(paste0(node_name, "_", node_counter))
+  }
+
+  # Loop through the merge list to create nodes and edges
+  for (merge_into in names(merge_list)) {
+    merged_nodes <- merge_list[[merge_into]]
+
+    # Set the font color based on the input vector or default
+    fontcolor <- ifelse(merge_into %in% names(fontcolor_nodes),
+                        fontcolor_nodes[merge_into], default_fontcolor)
+
+    # Create a unique identifier for the merge_into node
+    merge_into_unique <- get_unique_node_name(merge_into)
+
+    # Define the merged node
+    diagram_code <- paste0(diagram_code, "
+      \"", merge_into_unique, "\" [shape=ellipse, fillcolor='", colors[merge_into], "', fontcolor='", fontcolor, "', label = \"", merge_into, "\"];
+    ")
+
+    # Define the individual nodes and edges
+    for (node in merged_nodes) {
+      fontcolor <- ifelse(node %in% names(fontcolor_nodes),
+                          fontcolor_nodes[node], default_fontcolor)
+
+      # Create a unique identifier for the node
+      node_unique <- get_unique_node_name(node)
+
+      diagram_code <- paste0(diagram_code, "
+        \"", node_unique, "\" [shape=box, fillcolor='", colors[node], "', fontcolor='", fontcolor, "', label = \"", node, "\"];
+        \"", node_unique, "\" -> \"", merge_into_unique, "\";
+      ")
+    }
+  }
+
+  # Close the diagram definition
+  diagram_code <- paste0(diagram_code, "
+      # Set global graph attributes
+      graph [layout = dot, rankdir = TB];
+    }
+  ")
+
+  # Render the diagram
+  DiagrammeR::grViz(diagram_code)
+}
+
+#' Get Merge List for create_diagram
+#'
+#' This function generates a list mapping merged cell types to their original cell types
+#' based on the clustering results from an adapted reference dataset. The function assumes
+#' that the dataset has been preprocessed using `adapt_reference()`.
+#'
+#' @param adapted_reference A `data.frame` or `tibble` that contains the adapted reference data.
+#'   The data should include the columns `cluster`, `celltype`, and `celltype_original`.
+#'   These columns are expected to be present in the dataset after running `adapt_reference()`.
+#'
+#' @return A named list where each element represents a merged cell type. The names of the list
+#'   correspond to the unique cell types in the `celltype` column, and the values are lists of
+#'   the original cell types (`celltype_original`) that were merged into the final cell type.
+#'
+#' @details The function filters the provided reference data to include only unique combinations
+#'   of `cluster`, `celltype`, and `celltype_original`. It then groups the data by `cluster` and
+#'   creates a list where each unique `celltype` is associated with its corresponding original
+#'   cell types. The list is returned in a format suitable for use in generating flowcharts or
+#'   diagrams that visualize the merging of cell types.
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming `adapted_reference` is a preprocessed tibble from `adapt_reference()`
+#' merge_list <- get_merge_list(adapted_reference)
+#' print(merge_list)
+#' }
+#'
+get_merge_list <- function(adapted_reference) {
+  stopifnot(
+    "Please run adapt_reference() before creating a diagram." =
+      all(c("cluster", "celltype", "celltype_original") %in%
+            colnames(adapted_reference)))
+
+  merge_list <- adapted_reference |>
+    dplyr::distinct(cluster, celltype, celltype_original) |>
+    dplyr::filter(!is.na(cluster)) |>
+    dplyr::group_by(cluster) |>
+    dplyr::reframe(
+      celltype = unique(celltype),
+      celltype_original = list(celltype_original)) %>%
+    dplyr::select(-cluster) |>
+    tibble::deframe()
+  return(merge_list)
+}
+

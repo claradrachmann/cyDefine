@@ -195,16 +195,18 @@ merge_populations <- function(populations_to_merge,
 
   # modify cell type labels in reference to correspond to clusters
   reference <- dplyr::left_join(reference,
-    populations_to_merge %>%
-      dplyr::select(
-        popu,
-        merged_label
-      ),
+    populations_to_merge,# %>%
+      # dplyr::select(
+      #   popu,
+      #   merged_label
+      # ),
     by = c("celltype" = "popu")
   ) %>%
-    dplyr::mutate(celltype = dplyr::coalesce(
-      merged_label,
-      celltype
+    dplyr::mutate(
+      celltype_original = celltype,
+      celltype = dplyr::coalesce(
+        merged_label,
+        celltype
     )) %>%
     dplyr::select(-merged_label)
 
@@ -308,40 +310,24 @@ identify_similar_populations <- function(reference,
   }
 
   # stratified down-sampling to 1000 cells per type
-  tmp_ref <- reference %>%
+  reference <- reference %>%
     dplyr::group_by(celltype) %>%
-    dplyr::slice(if (dplyr::n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
+    # dplyr::slice(if (dplyr::n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
+    dplyr::mutate(train_idx = sample(c(TRUE, FALSE), size = n(), replace = TRUE, prob = c(0.6, 0.4))) %>%
     dplyr::ungroup()
 
   # stratified data partition
-  train_idx <- caret::createDataPartition(tmp_ref$celltype,
-    list = FALSE,
-    p = 0.5
-  )
+  # train_idx <- caret::createDataPartition(reference$celltype,
+  #   list = FALSE,
+  #   p = 0.5
+  # )
+  tmp_ref <- reference[reference$train_idx, ]
+  tmp_query <- reference[!reference$train_idx, ]
 
-  if (optimize_params) {
-    param_grid <- expand.grid(
-      mtry = as.integer(seq(
-        from = round(0.25 * length(markers)),
-        to = round(0.9 * length(markers)),
-        length.out = 8
-      )),
-      min.node.size = seq(1, 6, 2),
-      splitrule = "gini",
-      num.trees = seq(200, 500, 100)
-    )
-  } else {
-    param_grid <- expand.grid(
-      mtry = as.integer(0.5 * length(markers)),
-      min.node.size = 20,
-      splitrule = "gini",
-      num.trees = 300
-    )
-  }
 
   y_pred <- classify_cells(
-    reference = reference[reference$id %!in% ref_val$id, ],
-    query = ref_val,
+    reference = tmp_ref,
+    query = tmp_query,
     markers = markers,
     num.threads = num.threads,
     mtry = mtry,
@@ -351,35 +337,25 @@ identify_similar_populations <- function(reference,
   )
 
   # ensure same levels for pred and obs
-  y_test <- factor(ref_val$celltype)
+  y_test <- factor(tmp_query$celltype)
   y_pred <- factor(y_pred,
     levels = levels(y_test)
   )
 
 
   # get celltypes with low one-vs-rest F1 score
-  merging_candidates <- crfsuite::crf_evaluation(y_pred, y_test)$bylabel %>%
-    dplyr::as_tibble() %>%
-    dplyr::filter(f1 < !!min_f1) %>%
-    dplyr::pull(label)
+  f1 <- cyDefine:::compute_f1(y_pred, y_test)
+  merging_candidates <- names(f1[f1 < min_f1])
 
   if (length(merging_candidates) > 0) {
     # get confusion matrix of merging candidates
-    similar_population_pairs <- caret::confusionMatrix(y_pred,
-      y_test,
-      dnn = c(
-        "predicted",
-        "observed"
-      )
-    )$table %>%
-      dplyr::as_tibble() %>%
+    similar_population_pairs <- cyDefine:::create_confusion_matrix(y_pred, y_test) |>
       dplyr::filter(
         observed %in% merging_candidates,
         observed != predicted
       ) %>%
       dplyr::group_by(observed) %>%
       dplyr::summarise(predicted = predicted[n == max(n)])
-
 
     population_clusters <- igraph::components(
       igraph::graph_from_data_frame(similar_population_pairs)
@@ -397,6 +373,67 @@ identify_similar_populations <- function(reference,
 }
 
 
+create_flowchart <- function(merge_list, colors, fontcolor_nodes = NULL, default_fontcolor = "black") {
+
+  cyDefine:::check_package("DiagrammeR")
+
+  # Initialize the diagram
+  diagram_code <- "
+    digraph flowchart {
+      # Global node styles
+      node [fontname = Helvetica, style = filled, color = black, shape = box];
+  "
+
+  # To track the incrementing value for node names
+  node_counter <- 0
+
+  # Function to get a unique node name by appending an incrementing value
+  get_unique_node_name <- function(node_name) {
+    node_counter <<- node_counter + 1
+    return(paste0(node_name, "_", node_counter))
+  }
+
+  # Loop through the merge list to create nodes and edges
+  for (merge_into in names(merge_list)) {
+    merged_nodes <- merge_list[[merge_into]]
+
+    # Set the font color based on the input vector or default
+    fontcolor <- ifelse(merge_into %in% names(fontcolor_nodes),
+                        fontcolor_nodes[merge_into], default_fontcolor)
+
+    # Create a unique identifier for the merge_into node
+    merge_into_unique <- get_unique_node_name(merge_into)
+
+    # Define the merged node
+    diagram_code <- paste0(diagram_code, "
+      \"", merge_into_unique, "\" [shape=ellipse, fillcolor='", colors[merge_into], "', fontcolor='", fontcolor, "', label = \"", merge_into, "\"];
+    ")
+
+    # Define the individual nodes and edges
+    for (node in merged_nodes) {
+      fontcolor <- ifelse(node %in% names(fontcolor_nodes),
+                          fontcolor_nodes[node], default_fontcolor)
+
+      # Create a unique identifier for the node
+      node_unique <- get_unique_node_name(node)
+
+      diagram_code <- paste0(diagram_code, "
+        \"", node_unique, "\" [shape=box, fillcolor='", colors[node], "', fontcolor='", fontcolor, "', label = \"", node, "\"];
+        \"", node_unique, "\" -> \"", merge_into_unique, "\";
+      ")
+    }
+  }
+
+  # Close the diagram definition
+  diagram_code <- paste0(diagram_code, "
+      # Set global graph attributes
+      graph [layout = dot, rankdir = TB];
+    }
+  ")
+
+  # Render the diagram
+  DiagrammeR::grViz(diagram_code)
+}
 
 
 #' Exclude Redundant Cell Populations from Reference
@@ -541,6 +578,7 @@ adapt_reference <- function(reference = seurat_reference,
         reference = reference,
         using_seurat = using_seurat
       )
+
 
       if (verbose) {
         message(
