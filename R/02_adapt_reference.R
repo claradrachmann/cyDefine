@@ -90,14 +90,14 @@ map_marker_names <- function(
         "IL-7R" = "CD127", # "B220"="CD45", "CD45R"="CD45",
         "IL-7Ra" = "CD127", "NKP46" = "CD335", "GYPA" = "CD235A",
         "GPA" = "CD235A", "Ter119" = "CD235A", "TRAIL" = "CD253",
-        "TNFSF10" = "CD253", "CXCR4" = "CD184", "OX40" = "CD134",# "CCR7" = "CD197",
+        "TNFSF10" = "CD253", "CXCR4" = "CD184", "OX40" = "CD134", #"CCR7" = "CD197",
         "TNFRSF4" = "CD134", "ACT35" = "CD134", "CCR5" = "CD195", #"CXCR3" = "CD183",
         "CXCR6" = "CD186", "TCRVa7.2" = "TCR-V-7.2", "Va7.2" = "TCR-V-7.2",
         "TCRV7.2" = "TCR-V-7.2", "TRAV1-2" = "TCR-V-7.2", "Vg9" = "TCR-V-9", "TCRVg9" = "TCR-V-9",
         "TCRVa24-JaQ" = "TCR-V-24-J-18", "TCRVa24-Ja18" = "TCR-V-24-J-18",
         "CCR9" = "CD199", "CDw199" = "CD199", "ICOS" = "CD278",
         "LAG3" = "CD223", "CD40L" = "CD154", "CD40LG" = "CD154", "CD41A" = "CD41",
-        "PDL2" = "CD273", "CD3" = "CD3E"
+        "PDL2" = "CD273", "CD3" = "CD3E"#, "NKG2" = "CD159", "NKG2A" = "CD159a"
       )
 
       old_names <- intersect(names(common_names), not_in_ref)
@@ -195,11 +195,11 @@ merge_populations <- function(populations_to_merge,
 
   # modify cell type labels in reference to correspond to clusters
   reference <- dplyr::left_join(reference,
-    populations_to_merge,# %>%
-      # dplyr::select(
-      #   popu,
-      #   merged_label
-      # ),
+    populations_to_merge %>%
+      dplyr::select(
+        popu,
+        merged_label
+      ),
     by = c("celltype" = "popu")
   ) %>%
     dplyr::mutate(
@@ -313,7 +313,7 @@ identify_similar_populations <- function(reference,
   reference <- reference %>%
     dplyr::group_by(celltype) %>%
     # dplyr::slice(if (dplyr::n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
-    dplyr::mutate(train_idx = sample(c(TRUE, FALSE), size = n(), replace = TRUE, prob = c(0.6, 0.4))) %>%
+    dplyr::mutate(train_idx = sample(c(TRUE, FALSE), size = n(), replace = TRUE, prob = c(0.5, 0.5))) %>%
     dplyr::ungroup()
 
   # stratified data partition
@@ -368,6 +368,7 @@ identify_similar_populations <- function(reference,
   } else {
     return(tibble::tibble())
   }
+
 
   return(similar_populations)
 }
@@ -595,6 +596,7 @@ adapt_reference <- function(reference = seurat_reference,
     } else {
       new_queries <- FALSE
     }
+    # reference$cluster <- NULL
 
     i <- i + 1
   }
