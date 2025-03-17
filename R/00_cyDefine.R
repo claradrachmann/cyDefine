@@ -71,7 +71,6 @@ cyDefine <- function(
 
     reference <- adapt_reference(
       reference = reference,
-      query = query,
       markers = markers,
       num.threads = num.threads,
       mtry = mtry,

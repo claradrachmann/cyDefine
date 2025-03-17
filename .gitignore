@@ -2,5 +2,6 @@
 inst/doc
 data/seurat_reference.rda
 .Rhistory
-data/.DS_Store
+*.DS_Store
+*.Rproj
 doc/
