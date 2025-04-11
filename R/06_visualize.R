@@ -572,3 +572,62 @@ get_merge_list <- function(adapted_reference) {
   return(merge_list)
 }
 
+#' Create an Alluvial Plot
+#'
+#' This function creates an alluvial plot to compare true and predicted clusterings.
+#'
+#' @param df A data frame containing the classified data.
+#' @param true A character string indicating the column name for true labels.
+#' @param predicted A character string indicating the column name for predicted labels.
+#' @param color A named vector of colors for the true labels.
+#' @param color_by A character string indicating which variable to use for filling the alluvia ("true" or "predicted").
+#' @param n An integer indicating the sample size.
+#' @param seed An integer indicating the seed value for random sampling.
+#'
+#' @return A ggplot object representing the alluvial plot.
+#'
+#' @examples
+#' # Example usage
+#' plot_alluvium(df = classified, true = "celltype", predicted = "model_prediction",
+#'               color = celltype_colors, color_by = "true", n = 500, seed = 1286)
+#'
+#' @importFrom dplyr sample_n
+#' @import ggplot2
+#' @import ggalluvial
+#'
+#' @export
+plot_alluvium <- function(df, true = "celltype", predicted = "model_prediction", color = NULL, color_by = c("true", "predicted"), n = 500, seed = 1286) {
+  color_by <- match.arg(color_by)
+  color_by <- if (color_by == "true") true else predicted
+  stopifnot("Please set 'true' as a column in the input data." = true %in% colnames(df))
+  stopifnot("Please set 'predicted' as a column in the input data." = predicted %in% colnames(df))
+  if (is(color, "NULL")) {
+    color <- cyDefine::get_distinct_colors(unique(df[[color_by]]), add_unassigned = F)
+  }
+
+  # Set the seed for reproducibility
+  set.seed(seed)
+
+  if (n < nrow(df)) {
+    df <- dplyr::sample_n(df, size = n)
+  }
+
+  # Create the alluvial plot
+  plot <- ggplot(df, aes_string(axis1 = true, axis2 = predicted)) +
+    geom_alluvium(aes_string(fill = color_by), alpha = .7, reverse = TRUE) +
+    geom_stratum(width = 1/4) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("True", "Predicted"), expand = c(0.15, 0.05)) +
+    scale_fill_manual(values = sort(color)) +
+    theme_void() +
+    theme(
+      axis.text.x = element_text(size = 12),
+      axis.title.x = element_text(size = 14, face = "bold"),
+      axis.text.y = element_text(size = 12),
+      axis.title.y = element_text(size = 14, face = "bold"),
+      legend.position = "none"
+    ) +
+    ggtitle("True vs Predicted")
+
+  return(plot)
+}
