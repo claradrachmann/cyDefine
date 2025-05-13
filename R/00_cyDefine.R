@@ -22,6 +22,11 @@
 #' should be adapted to match the query marker panel. Default: FALSE if
 #' `using_pbmc` is FALSE, otherwise TRUE.
 #'
+#' @param save_adapted_reference Default: NULL. Save the adapted reference in a
+#'  specified object name or as "adapted_reference.rds" in a specified path.
+#'  Usage: FAlSE/NULL - not stored.
+#'  TRUE/path - stored as "adapted_reference.rds" at "./" or path.
+#'  path/to/filename.rds - stored as "filename.rds" at path/to/.
 #' @return Tibble of query data with added columns: "model_prediction"
 #' indicating the canonical cell type predicted by the model, and
 #' "predicted_celltype" indicating the final predicted cell type after
@@ -39,7 +44,7 @@ cyDefine <- function(
       TRUE,
       FALSE),
     batch_correct = TRUE,
-    xdim = 8, ydim = 8,
+    xdim = 6, ydim = 6,
     identify_unassigned = TRUE,
     norm_method = ifelse(
       using_pbmc,
@@ -53,8 +58,7 @@ cyDefine <- function(
     min.node.size = 1,
     num.trees = 300,
     num.threads = 4,
-    # save_adapted_reference
-    #TODO: ADD THIS ARGUMENT!
+    save_adapted_reference = NULL,
     unassigned_name = "unassigned",
     train_on_unassigned = ifelse(
       using_pbmc,
@@ -62,6 +66,10 @@ cyDefine <- function(
       TRUE),
     seed = 332,
     verbose = TRUE) {
+
+  if (reference == "pbmc" | reference == "pbmc_reference") {
+    reference <- getReference("pbmc", verbose = verbose)
+  }
 
   if (adapt_reference) {
 
@@ -75,6 +83,18 @@ cyDefine <- function(
       using_pbmc = using_pbmc,
       verbose = verbose
       )
+    # Store adapted reference
+    if (!is(save_adapted_reference, "NULL")) {
+      if (is(save_adapted_reference, "logical")){
+        if (save_adapted_reference) saveRDS(reference, "adapted_reference.rds")
+      } else {
+        if (grepl("rds", tolower(save_adapted_reference))) {
+          saveRDS(reference, save_adapted_reference)
+        } else {
+          saveRDS(reference, file.path(save_adapted_reference, "adapted_reference.rds"))
+        }
+      }
+    }
   }
 
   if (batch_correct) {

@@ -101,7 +101,14 @@ pbmc_reference <- pbmc_reference |>
 # pbmc_reference[, duplicated_location] <- NULL
 # pbmc_reference <- cbind(pbmc_reference, dup_ref)
 
-usethis::use_data(pbmc_reference, overwrite = TRUE)
+# usethis::use_data(pbmc_reference, overwrite = TRUE)
+saveRDS(pbmc_reference, file = "data/pbmc_reference.rds") # Update Zenodo
+pbmc_markers <- pbmc_reference %>%
+  dplyr::select(-dplyr::starts_with("celltype")) %>%
+  colnames()
+
+usethis::use_data(pbmc_markers, overwrite = TRUE)
+
 # saveRDS(pbmc_reference, file = "~/mnt/cr2/people/s153398/cytograted/data/seurat_reference_250422.RDS")
 
 
