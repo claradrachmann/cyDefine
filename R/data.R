@@ -2,7 +2,7 @@
 #'
 #' @format A character vector of length 241
 #'
-"seurat_markers"
+"pbmc_markers"
 
 
 #' The modified Seurat PBMC atlas
@@ -10,7 +10,7 @@
 #' @format A tibble of 161,764 rows and 244 variables
 #' @source \url{https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat}
 #'
-"seurat_reference"
+"pbmc_reference"
 
 
 #' An example of a CyTOF reference, already prepared by cyDefine as seen in

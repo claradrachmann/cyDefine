@@ -10,19 +10,17 @@
 #' @param batch_correct Boolean indicating whether or not you want to perform
 #' batch correction via cyCombine
 #' @param norm_method Normalization method for cyCombine batch correction.
-#' Should be either 'rank', 'scale' or 'qnorm'. Default is 'scale' unless
-#' reference is NULL, then 'rank', assuming heavy batch effects between Seurat
-#' atlas and query.
+#' Should be either 'rank', 'scale', or 'qnorm'. Default is 'scale'.
 #' @param identify_unassigned Boolean indicating whether or not you want to
 #' identify unassigned cells after classifying the cells.
-#' @param using_seurat Boolean indicating whether the Seurat PBMC atlas is
+#' @param using_pbmc Boolean indicating whether the Seurat PBMC atlas is
 #' being supplied as reference. This info is needed to enable automated
 #' screening of common marker names in `map_marker_names()` and tree-based
 #' merging of cell type labels.
 #'
 #' @param adapt_reference Boolean indicating whether the provided reference
 #' should be adapted to match the query marker panel. Default: FALSE if
-#' `using_seurat` is FALSE, otherwise TRUE.
+#' `using_pbmc` is FALSE, otherwise TRUE.
 #'
 #' @return Tibble of query data with added columns: "model_prediction"
 #' indicating the canonical cell type predicted by the model, and
@@ -35,16 +33,16 @@ cyDefine <- function(
     reference,
     query,
     markers,
-    using_seurat = FALSE,
+    using_pbmc = FALSE,
     adapt_reference = ifelse(
-      using_seurat,
+      using_pbmc,
       TRUE,
       FALSE),
     batch_correct = TRUE,
     xdim = 8, ydim = 8,
     identify_unassigned = TRUE,
     norm_method = ifelse(
-      using_seurat,
+      using_pbmc,
       "rank",
       "scale"),
     covar = NULL,
@@ -59,7 +57,7 @@ cyDefine <- function(
     #TODO: ADD THIS ARGUMENT!
     unassigned_name = "unassigned",
     train_on_unassigned = ifelse(
-      using_seurat,
+      using_pbmc,
       FALSE,
       TRUE),
     seed = 332,
@@ -74,7 +72,7 @@ cyDefine <- function(
       markers = markers,
       num.threads = num.threads,
       mtry = mtry,
-      using_seurat = using_seurat,
+      using_pbmc = using_pbmc,
       verbose = verbose
       )
   }

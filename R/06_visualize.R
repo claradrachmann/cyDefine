@@ -551,7 +551,6 @@ plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_f
 #' \dontrun{
 #' # Assuming `adapted_reference` is a preprocessed tibble from `adapt_reference()`
 #' merge_list <- get_merge_list(adapted_reference)
-#' print(merge_list)
 #' }
 #'
 get_merge_list <- function(adapted_reference) {

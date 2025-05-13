@@ -1,6 +1,6 @@
 #' Modify query marker names to match reference marker names
 #'
-#' @param using_seurat Boolean indicating whether or not the Seurat PBMC atlas is
+#' @param using_pbmc Boolean indicating whether or not the Seurat PBMC atlas is
 #' used as reference
 #' @param ref_markers Character vector of reference markers
 #' @param map_specific_from Optional: used together with `map_specific_to`.
@@ -26,7 +26,7 @@
 #' @examples
 #'
 #' map_marker_names(
-#'   using_seurat = TRUE, query = example_query,
+#'   using_pbmc = TRUE, query = example_query,
 #'   query_markers = example_markers, map_specific_from = c("CXCR5", "TCRgd"),
 #'   map_specific_to = c("CD185", "gdTCR")
 #' )
@@ -35,8 +35,8 @@
 map_marker_names <- function(
     query,
     query_markers,
-    ref_markers = cyDefine::seurat_markers,
-    using_seurat = TRUE,
+    ref_markers = cyDefine::pbmc_markers,
+    using_pbmc = TRUE,
     map_specific_from = NULL,
     map_specific_to = NULL,
     return_unrecognized = FALSE,
@@ -79,7 +79,7 @@ map_marker_names <- function(
   if (length(avail_markers_in_ref) != length(query_markers)) {
     not_in_ref <- setdiff(query_markers, ref_markers)
 
-    if (using_seurat) {
+    if (using_pbmc) {
       # common marker names
       common_names <- list(
         "CXCR5" = "CD185", "CCR4" = "CD194", "CCR6" = "CD196",
@@ -153,7 +153,7 @@ map_marker_names <- function(
       warning(
         "The following markers were not detected to be in the reference and were excluded from the data:\n  ",
         paste(not_in_ref, collapse = ", "), "\n  ",
-        "Markers of the Seurat PBMC reference can be found in 'seurat_markers'. ",
+        "Markers of the Seurat PBMC reference can be found in 'pbmc_markers'. ",
         "If needed, markers can be manually mapped to reference markers using the 'map_specfic_from' and 'map_specfic_to' arguments"
       )
 
@@ -181,14 +181,14 @@ map_marker_names <- function(
 #' @family adapt
 merge_populations <- function(populations_to_merge,
                               reference,
-                              using_seurat = TRUE) {
+                              using_pbmc = TRUE) {
   # get labels of clusters of merged populations
   populations_to_merge <- populations_to_merge %>%
     dplyr::group_by(cluster) %>%
     dplyr::summarise(
       popu = popu,
       merged_label = get_merged_label(popu,
-        using_seurat = using_seurat
+        using_pbmc = using_pbmc
       ),
       .groups = "drop"
     )
@@ -222,8 +222,8 @@ merge_populations <- function(populations_to_merge,
 #'
 #' @return Label of merged population
 #' @family adapt
-get_merged_label <- function(populations, using_seurat = TRUE) {
-  if (using_seurat) {
+get_merged_label <- function(populations, using_pbmc = TRUE) {
+  if (using_pbmc) {
     check_package("reshape2")
 
     levels <- c(stringr::str_c(
@@ -513,8 +513,8 @@ excl_redundant_populations <- function(reference,
 #' initial projection to remove redundant cell types of the reference. Set to
 #' FALSE, if you want to keep all cell types of the reference. Defaults to TRUE.
 #' @param min_f1 Minimum F1 score required for two cell types to be separated
-#' @param exclude_celltypes Only relevant if `using_seurat = TRUE`. Character
-#' vector of cell types of the Seurat reference to NOT consider during cell
+#' @param exclude_celltypes Only relevant if `using_pbmc = TRUE`. Character
+#' vector of cell types of the Seurat PBMC reference to NOT consider during cell
 #' type classification. Defaults to non-PBMCs.
 #' @inheritParams map_marker_names
 #' @inheritParams merge_populations
@@ -525,9 +525,9 @@ excl_redundant_populations <- function(reference,
 #' @return Tibble of adapted reference
 #' @export
 #'
-adapt_reference <- function(reference = seurat_reference,
+adapt_reference <- function(reference = pbmc_reference,
                             markers,
-                            using_seurat = TRUE,
+                            using_pbmc = TRUE,
                             initial_project = FALSE,
                             exclude_celltypes = c(
                               "Doublet",
@@ -535,7 +535,7 @@ adapt_reference <- function(reference = seurat_reference,
                               "Eryth",
                               "HSPC"
                             ),
-                            celltype_col = ifelse(using_seurat,
+                            celltype_col = ifelse(using_pbmc,
                               "celltype.l2",
                               "celltype"
                             ),
@@ -577,7 +577,7 @@ adapt_reference <- function(reference = seurat_reference,
       reference <- merge_populations(
         populations_to_merge = similar_populations,
         reference = reference,
-        using_seurat = using_seurat
+        using_pbmc = using_pbmc
       )
 
 
