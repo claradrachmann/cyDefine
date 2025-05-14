@@ -178,11 +178,11 @@ map_marker_names <- function(
 #' @inheritParams cyDefine
 #' @param populations_to_merge A data frame of clustered populations
 #' @param reference Data frame of reference data (cells in rows, markers in columns)
-#' @param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
+#' param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
 #' @family adapt
 merge_populations <- function(populations_to_merge,
                               reference,
-                              name_unassigned_if_merged = "unassigned",
+                              # name_unassigned_if_merged = "unassigned",
                               using_pbmc = TRUE) {
   # get labels of clusters of merged populations
   populations_to_merge <- populations_to_merge |>
@@ -190,13 +190,14 @@ merge_populations <- function(populations_to_merge,
     dplyr::reframe(
       popu = popu,
       merged_label = get_merged_label(popu, using_pbmc = using_pbmc)
-    ) |>
-    dplyr::mutate(
-      merged_label = dplyr::case_when(
-        stringr::str_detect(merged_label, name_unassigned_if_merged) ~ name_unassigned_if_merged,
-        TRUE ~ merged_label
-      )
     )
+  # |>
+  #   dplyr::mutate(
+  #     merged_label = dplyr::case_when(
+  #       stringr::str_detect(merged_label, name_unassigned_if_merged) ~ name_unassigned_if_merged,
+  #       TRUE ~ merged_label
+  #     )
+  #   )
 
   # modify cell type labels in reference to correspond to clusters
   reference <- dplyr::left_join(reference,

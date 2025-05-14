@@ -29,6 +29,8 @@ plot_umap(
 \item{colors}{Optional: Named list of colors per cell type. Values should be
 HEX colors and names should be the unique cell types}
 
+\item{query_color_col}{Column to color by. Default "predicted_celltype"}
+
 \item{build_umap_on}{Character describing what data should be applied for
 performing the UMAP embedding. Options are "both" (default), "reference",
 and "query". "Both" implies that the UMAP embedding is done on both the

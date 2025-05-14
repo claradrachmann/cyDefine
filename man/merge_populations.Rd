@@ -9,14 +9,13 @@ merge_populations(populations_to_merge, reference, using_pbmc = TRUE)
 \arguments{
 \item{populations_to_merge}{A data frame of clustered populations}
 
-\item{reference}{Data frame of reference data (cells in rows, markers in columns)}
+\item{reference}{Data frame of reference data (cells in rows, markers in columns)
+param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'}
 
 \item{using_pbmc}{Boolean indicating whether the Seurat PBMC atlas is
 being supplied as reference. This info is needed to enable automated
 screening of common marker names in \code{map_marker_names()} and tree-based
 merging of cell type labels.}
-
-\item{name_unassigned_if_merged}{Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'}
 }
 \description{
 Merge groups of similar cell populations

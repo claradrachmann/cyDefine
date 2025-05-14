@@ -19,6 +19,8 @@ excl_redundant_populations(
 \arguments{
 \item{reference}{Tibble of reference data (cells in rows, markers in columns)}
 
+\item{query}{Tibble of query data (cells in rows, markers in columns)}
+
 \item{markers}{Character vector of available markers present in both query
 and reference.}
 

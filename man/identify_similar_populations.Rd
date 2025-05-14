@@ -9,7 +9,7 @@ identify_similar_populations(
   reference,
   markers,
   num.threads = 4,
-  mtry = mtry,
+  mtry = 4,
   min_f1 = 0.7,
   seed = 332,
   verbose = TRUE
@@ -20,6 +20,10 @@ identify_similar_populations(
 
 \item{markers}{Character vector of available markers present in both query
 and reference.}
+
+\item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
+
+\item{mtry}{Number of variables to possibly split at in each node. Default is the (rounded down) square root of the number variables. Alternatively, a single argument function returning an integer, given the number of independent variables.}
 
 \item{min_f1}{desc}
 
