@@ -61,6 +61,7 @@ expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors =
 #' @param markers Character vector of available markers
 #' @param colors Optional: Named list of colors per cell type. Values should be
 #' HEX colors and names should be the unique cell types
+#' @param query_color_col Column to color by. Default "predicted_celltype"
 #' @param build_umap_on Character describing what data should be applied for
 #' performing the UMAP embedding. Options are "both" (default), "reference",
 #' and "query". "Both" implies that the UMAP embedding is done on both the
@@ -90,7 +91,6 @@ plot_umap <- function(reference,
                       seed = 332,
                       verbose = TRUE) {
   # check required packages
-  check_package("ggplot2")
   check_package("uwot")
   check_package("patchwork")
 
@@ -120,9 +120,9 @@ plot_umap <- function(reference,
         " cells each"
       )
     }
-    reference <- reference %>%
+    reference <- reference |>
       dplyr::slice_sample(n = min(sample_n, nrow(reference)))
-    query <- query %>%
+    query <- query |>
       dplyr::slice_sample(n = min(sample_n, nrow(query)))
   }
 
@@ -133,11 +133,11 @@ plot_umap <- function(reference,
 
     # UMAP embedding of both reference and query
     full_umap <- dplyr::bind_rows(
-      reference %>%
+      reference |>
         dplyr::select(dplyr::all_of(markers)),
-      query %>%
+      query |>
         dplyr::select(dplyr::all_of(markers))
-    ) %>%
+    ) |>
       uwot::umap(
         n_neighbors = 15,
         min_dist = 0.2,
@@ -153,8 +153,8 @@ plot_umap <- function(reference,
     }
 
     # UMAP embedding of reference
-    ref_umap_embed <- reference %>%
-      dplyr::select(dplyr::all_of(markers)) %>%
+    ref_umap_embed <- reference |>
+      dplyr::select(dplyr::all_of(markers)) |>
       uwot::umap(
         n_neighbors = 15,
         min_dist = 0.2,
@@ -169,8 +169,8 @@ plot_umap <- function(reference,
     }
 
     # projection of new data
-    query_umap <- query %>%
-      dplyr::select(dplyr::all_of(markers)) %>%
+    query_umap <- query |>
+      dplyr::select(dplyr::all_of(markers)) |>
       uwot::umap_transform(model = ref_umap_embed)
   }
 
@@ -197,9 +197,9 @@ plot_umap <- function(reference,
   )
 
   # plot reference colored by cell type
-  ref_embedding <- ref_umap %>%
-    dplyr::as_tibble() %>%
-    dplyr::mutate(celltype = stringr::str_wrap(reference$celltype, 20)) %>%
+  ref_embedding <- ref_umap |>
+    dplyr::as_tibble() |>
+    dplyr::mutate(celltype = stringr::str_wrap(reference$celltype, 20)) |>
     ggplot2::ggplot(ggplot2::aes(
       x = .data$V1,
       y = .data$V2
@@ -277,7 +277,6 @@ plot_abundance <- function(predicted_populations,
                            colors = NULL,
                            return_data = FALSE,
                            verbose = TRUE) {
-  check_package("ggplot2")
 
   if (verbose) {
     message("Visualizing abundance of predicted cell types")
@@ -287,8 +286,8 @@ plot_abundance <- function(predicted_populations,
     colors <- get_distinct_colors(unique(predicted_populations))
   }
 
-  freqs <- table(predicted_populations) %>%
-    dplyr::as_tibble() %>%
+  freqs <- table(predicted_populations)  |>
+    dplyr::as_tibble() |>
     dplyr::mutate(
       prop = n / sum(n),
       label = paste0(round(100 * prop, 1), "%"),
@@ -299,8 +298,7 @@ plot_abundance <- function(predicted_populations,
     return(freqs)
   }
 
-  p <- freqs %>%
-    ggplot2::ggplot(ggplot2::aes(
+  p <- ggplot2::ggplot(freqs, ggplot2::aes(
       x = .data$predicted_populations,
       y = .data$prop,
       fill = .data$predicted_populations
@@ -352,6 +350,9 @@ plot_abundance <- function(predicted_populations,
 #' include in the heatmap
 #' @param title Title of the plot
 #'
+#' @importFrom grDevices colorRampPalette
+#' @importFrom RColorBrewer brewer.pal
+#'
 #' @return a pheatmap heatmap
 #' @export
 #'
@@ -368,14 +369,14 @@ plot_heatmap <- function(data,
     message("Visualizing expression of predicted cell types")
   }
 
-  data <- data %>%
-    dplyr::group_by_at(population_col) %>%
-    dplyr::summarise_at(dplyr::all_of(markers_to_plot), mean) %>%
+  data <- data |>
+    dplyr::group_by_at(population_col) |>
+    dplyr::summarise_at(dplyr::all_of(markers_to_plot), mean) |>
     dplyr::mutate_at(dplyr::all_of(markers_to_plot), scale)
 
-  plot_dat <- data %>%
-    dplyr::select(dplyr::all_of(markers_to_plot)) %>%
-    as.matrix() %>%
+  plot_dat <- data |>
+    dplyr::select(dplyr::all_of(markers_to_plot)) |>
+    as.matrix() |>
     t()
 
   colnames(plot_dat) <- data[[population_col]]
@@ -417,7 +418,7 @@ plot_heatmap <- function(data,
 #' final cell types.
 #'
 #' @param input A `list` or `data.frame`. If a `data.frame`, it should have been processed using
-#'   `adapt_reference()` and must contain columns `cluster`, `celltype`, and `celltype_original`.
+#'   `adapt_reference()` and must contain columns `celltype` and `celltype_original`.
 #'   If a `list`, it should be structured such that each key represents a merged cell type and
 #'   each value is a vector of original cell types.
 #' @param colors A named vector where the names correspond to cell types (both original and merged),
@@ -449,22 +450,23 @@ plot_heatmap <- function(data,
 #' @export
 plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_fontcolor = "black") {
 
-  cyDefine:::check_package("DiagrammeR")
+  check_package("DiagrammeR")
 
   if ("data.frame" %in% class(input)) {
     merge_list <- get_merge_list(input)
-  } else if (class(input) == "list") {
+  } else if (inherits(input) == "list") {
     merge_list <- input
   }
 
 
-  if (all(c("celltype", "celltype_original") %in% names(input))) {
+  if (all(c("celltype", "celltype_original") %in% names(input)) & !is(colors, "NULL")) {
     colors <- expand_colors(input$celltype, input$celltype_original, colors)
   } else if (is.null(colors)) {
     colors <- cyDefine::get_distinct_colors(unique(unlist(merge_list)))
-  } else if (!all(names(merge_list) %in% names(colors))) {
+  }
+  if (!all(names(merge_list) %in% names(colors))) {
     colors[names(merge_list)] <- sapply(names(merge_list), function(merged) {
-      colors[stringr::str_split(merged, " /")[[1]][1]]
+      as.character(colors[stringr::str_split(merged, " /")[[1]][1]])
     })
   }
 
@@ -556,18 +558,18 @@ plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_f
 get_merge_list <- function(adapted_reference) {
   stopifnot(
     "Please run adapt_reference() before creating a diagram." =
-      all(c("cluster", "celltype", "celltype_original") %in%
+      all(c("celltype", "celltype_original") %in%
             colnames(adapted_reference)))
 
   merge_list <- adapted_reference |>
-    dplyr::distinct(cluster, celltype, celltype_original) |>
-    dplyr::filter(!is.na(cluster)) |>
-    dplyr::group_by(cluster) |>
+    dplyr::distinct(celltype, celltype_original) |>
+    dplyr::filter(celltype != celltype_original) |>
+    dplyr::group_by(celltype) |>
     dplyr::reframe(
       celltype = unique(celltype),
-      celltype_original = list(celltype_original)) %>%
-    dplyr::select(-cluster) |>
+      celltype_original = list(celltype_original)) |>
     tibble::deframe()
+
   return(merge_list)
 }
 
@@ -585,23 +587,27 @@ get_merge_list <- function(adapted_reference) {
 #'
 #' @return A ggplot object representing the alluvial plot.
 #'
-#' @examples
-#' # Example usage
-#' plot_alluvium(df = classified, true = "celltype", predicted = "model_prediction",
-#'               color = celltype_colors, color_by = "true", n = 500, seed = 1286)
 #'
 #' @importFrom dplyr sample_n
 #' @import ggplot2
-#' @import ggalluvial
 #'
 #' @export
-plot_alluvium <- function(df, true = "celltype", predicted = "model_prediction", color = NULL, color_by = c("true", "predicted"), n = 500, seed = 1286) {
+plot_alluvium <- function(
+    df,
+    true = "celltype",
+    predicted = "model_prediction",
+    color = NULL,
+    color_by = c("true", "predicted"),
+    n = 500,
+    seed = 1286
+    ) {
+  check_package("ggalluvial")
   color_by <- match.arg(color_by)
   color_by <- if (color_by == "true") true else predicted
   stopifnot("Please set 'true' as a column in the input data." = true %in% colnames(df))
   stopifnot("Please set 'predicted' as a column in the input data." = predicted %in% colnames(df))
   if (is(color, "NULL")) {
-    color <- cyDefine::get_distinct_colors(unique(df[[color_by]]), add_unassigned = F)
+    color <- get_distinct_colors(unique(df[[color_by]]), add_unassigned = F)
   }
 
   # Set the seed for reproducibility
@@ -612,21 +618,21 @@ plot_alluvium <- function(df, true = "celltype", predicted = "model_prediction",
   }
 
   # Create the alluvial plot
-  plot <- ggplot(df, aes_string(axis1 = true, axis2 = predicted)) +
-    geom_alluvium(aes_string(fill = color_by), alpha = .7, reverse = TRUE) +
-    geom_stratum(width = 1/4) +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-    scale_x_discrete(limits = c("True", "Predicted"), expand = c(0.15, 0.05)) +
-    scale_fill_manual(values = sort(color)) +
-    theme_void() +
-    theme(
-      axis.text.x = element_text(size = 12),
-      axis.title.x = element_text(size = 14, face = "bold"),
-      axis.text.y = element_text(size = 12),
-      axis.title.y = element_text(size = 14, face = "bold"),
+  plot <- ggplot2::ggplot(df, ggplot2::aes_string(axis1 = true, axis2 = predicted)) +
+    ggalluvial::geom_alluvium(ggplot2::aes_string(fill = color_by), alpha = .7, reverse = TRUE) +
+    ggalluvial::geom_stratum(width = 1/4) +
+    ggplot2::geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    ggplot2::scale_x_discrete(limits = c("True", "Predicted"), expand = c(0.15, 0.05)) +
+    ggplot2::scale_fill_manual(values = sort(color)) +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(size = 12),
+      axis.title.x = ggplot2::element_text(size = 14, face = "bold"),
+      axis.text.y = ggplot2::element_text(size = 12),
+      axis.title.y = ggplot2::element_text(size = 14, face = "bold"),
       legend.position = "none"
     ) +
-    ggtitle("True vs Predicted")
+    ggplot2::ggtitle("True vs Predicted")
 
   return(plot)
 }

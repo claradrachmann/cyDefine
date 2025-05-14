@@ -5,3 +5,6 @@ data/seurat_reference.rda
 *.DS_Store
 *.Rproj
 doc/
+*.html
+vignettes/*.R
+tmp

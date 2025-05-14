@@ -9,8 +9,13 @@ batch_correct(
   query,
   markers,
   covar = NULL,
+  label = NULL,
   norm_method = "scale",
+  ref.batch = NULL,
   seed = 332,
+  xdim = 8,
+  ydim = 8,
+  rlen = 10,
   verbose = TRUE
 )
 }
@@ -24,9 +29,19 @@ batch_correct(
 \item{covar}{The covariate ComBat should use. Can be a vector or a column name in the input tibble.
 If NULL, no covar will be used}
 
-\item{norm_method}{Normalization method. Should be either 'rank', 'scale' or 'qnorm'. Default: 'scale'}
+\item{label}{The cluster or cell type label. Either as a column name or vector.}
+
+\item{norm_method}{Normalization method. Should be either 'rank', 'scale', 'CLR', or 'qnorm'. Default: 'scale'}
+
+\item{ref.batch}{Optional. A string of the batch that should be used as the reference for batch adjustments.}
 
 \item{seed}{The seed to use when creating the SOM.}
+
+\item{xdim}{The x-dimension size of the SOM.}
+
+\item{ydim}{The y-dimension size of the SOM.}
+
+\item{rlen}{Number of times the data is presented to the SOM network}
 
 \item{verbose}{Verbosity}
 }

@@ -59,7 +59,7 @@ map_marker_names <- function(
       )
     }
 
-    query <- query %>%
+    query <- query |>
       dplyr::rename_at(
         dplyr::vars(dplyr::all_of(map_specific_from)),
         ~map_specific_to
@@ -142,7 +142,7 @@ map_marker_names <- function(
         ))
       }
 
-      query <- query %>%
+      query <- query |>
         dplyr::rename_at(dplyr::all_of(old_names), ~new_names)
 
       not_in_ref <- not_in_ref[not_in_ref %!in% old_names]
@@ -157,7 +157,7 @@ map_marker_names <- function(
         "If needed, markers can be manually mapped to reference markers using the 'map_specfic_from' and 'map_specfic_to' arguments"
       )
 
-      query <- query %>%
+      query <- query |>
         dplyr::select(-dplyr::all_of(not_in_ref))
     }
   } else {
@@ -175,40 +175,41 @@ map_marker_names <- function(
 
 #' Merge groups of similar cell populations
 #'
+#' @inheritParams cyDefine
 #' @param populations_to_merge A data frame of clustered populations
 #' @param reference Data frame of reference data (cells in rows, markers in columns)
 #' @param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
 #' @family adapt
 merge_populations <- function(populations_to_merge,
                               reference,
+                              name_unassigned_if_merged = "unassigned",
                               using_pbmc = TRUE) {
   # get labels of clusters of merged populations
-  populations_to_merge <- populations_to_merge %>%
-    dplyr::group_by(cluster) %>%
-    dplyr::summarise(
+  populations_to_merge <- populations_to_merge |>
+    dplyr::group_by(cluster) |>
+    dplyr::reframe(
       popu = popu,
-      merged_label = get_merged_label(popu,
-        using_pbmc = using_pbmc
-      ),
-      .groups = "drop"
+      merged_label = get_merged_label(popu, using_pbmc = using_pbmc)
+    ) |>
+    dplyr::mutate(
+      merged_label = dplyr::case_when(
+        stringr::str_detect(merged_label, name_unassigned_if_merged) ~ name_unassigned_if_merged,
+        TRUE ~ merged_label
+      )
     )
 
   # modify cell type labels in reference to correspond to clusters
   reference <- dplyr::left_join(reference,
-    populations_to_merge %>%
-      dplyr::select(
-        popu,
-        merged_label
-      ),
+    populations_to_merge,
     by = c("celltype" = "popu")
-  ) %>%
+  ) |>
     dplyr::mutate(
       celltype_original = celltype,
       celltype = dplyr::coalesce(
         merged_label,
         celltype
-    )) %>%
-    dplyr::select(-merged_label)
+    )) |>
+    dplyr::select(-merged_label, -cluster)
 
   return(reference)
 }
@@ -228,7 +229,7 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
 
     levels <- c(stringr::str_c(
       "L",
-      1:(ncol(labeling_tree) - 1)
+      seq_len(ncol(labeling_tree) - 1)
     ), "leaf")
     i <- 1
 
@@ -239,7 +240,7 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
         leaf_popus <- dplyr::filter(
           labeling_tree,
           get(levels[i]) == parent
-        ) %>%
+        ) |>
           dplyr::pull(leaf)
 
         # if all popus of parent node are to be merged
@@ -265,13 +266,15 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
 #' Identify indistinguishable cell type populations in the reference, based on
 #' query marker panel
 #'
+#' @inheritParams adapt_reference
+#' @inheritParams ranger::ranger
 #' @param population_pairs Data frame of two character columns with one cell
 #' type in each, and rows representing all pairs of cell types to be tested.
 #' @param reference desc
 #' @param min_f1 desc
 #' @param seed desc
 #' @param verbose desc
-#' @importFrom dplyr slice_sample group_by group_modify ungroup
+#' @importFrom dplyr slice_sample group_by group_modify ungroup n
 #' @importFrom igraph components graph_from_data_frame
 #'
 #' @return A tibble of similar populations
@@ -279,7 +282,7 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
 identify_similar_populations <- function(reference,
                                          markers,
                                          num.threads = 4,
-                                         mtry = mtry,
+                                         mtry = 4,
                                          min_f1 = 0.7,
                                          seed = 332,
                                          verbose = TRUE) {
@@ -309,18 +312,12 @@ identify_similar_populations <- function(reference,
     message("Running classification to identify similar populations")
   }
 
-  # stratified down-sampling to 1000 cells per type
-  reference <- reference %>%
-    dplyr::group_by(celltype) %>%
-    # dplyr::slice(if (dplyr::n() >= 1000) sample(dplyr::row_number(), 1000) else dplyr::row_number()) %>%
-    dplyr::mutate(train_idx = sample(c(TRUE, FALSE), size = n(), replace = TRUE, prob = c(0.5, 0.5))) %>%
+  # split data 50% by celltype
+  reference <- reference |>
+    dplyr::group_by(celltype) |>
+    dplyr::mutate(train_idx = sample(c(TRUE, FALSE), size = dplyr::n(), replace = TRUE, prob = c(0.5, 0.5))) |>
     dplyr::ungroup()
 
-  # stratified data partition
-  # train_idx <- caret::createDataPartition(reference$celltype,
-  #   list = FALSE,
-  #   p = 0.5
-  # )
   tmp_ref <- reference[reference$train_idx, ]
   tmp_query <- reference[!reference$train_idx, ]
 
@@ -344,17 +341,17 @@ identify_similar_populations <- function(reference,
 
 
   # get celltypes with low one-vs-rest F1 score
-  f1 <- cyDefine:::compute_f1(y_pred, y_test)
+  f1 <- compute_f1(y_pred, y_test)
   merging_candidates <- names(f1[f1 < min_f1])
 
   if (length(merging_candidates) > 0) {
     # get confusion matrix of merging candidates
-    similar_population_pairs <- cyDefine:::create_confusion_matrix(y_pred, y_test) |>
+    similar_population_pairs <- create_confusion_matrix(y_pred, y_test) |>
       dplyr::filter(
         observed %in% merging_candidates,
         observed != predicted
-      ) %>%
-      dplyr::group_by(observed) %>%
+      ) |>
+      dplyr::group_by(observed) |>
       dplyr::summarise(predicted = predicted[n == max(n)])
 
     population_clusters <- igraph::components(
@@ -373,76 +370,13 @@ identify_similar_populations <- function(reference,
   return(similar_populations)
 }
 
-
-create_flowchart <- function(merge_list, colors, fontcolor_nodes = NULL, default_fontcolor = "black") {
-
-  cyDefine:::check_package("DiagrammeR")
-
-  # Initialize the diagram
-  diagram_code <- "
-    digraph flowchart {
-      # Global node styles
-      node [fontname = Helvetica, style = filled, color = black, shape = box];
-  "
-
-  # To track the incrementing value for node names
-  node_counter <- 0
-
-  # Function to get a unique node name by appending an incrementing value
-  get_unique_node_name <- function(node_name) {
-    node_counter <<- node_counter + 1
-    return(paste0(node_name, "_", node_counter))
-  }
-
-  # Loop through the merge list to create nodes and edges
-  for (merge_into in names(merge_list)) {
-    merged_nodes <- merge_list[[merge_into]]
-
-    # Set the font color based on the input vector or default
-    fontcolor <- ifelse(merge_into %in% names(fontcolor_nodes),
-                        fontcolor_nodes[merge_into], default_fontcolor)
-
-    # Create a unique identifier for the merge_into node
-    merge_into_unique <- get_unique_node_name(merge_into)
-
-    # Define the merged node
-    diagram_code <- paste0(diagram_code, "
-      \"", merge_into_unique, "\" [shape=ellipse, fillcolor='", colors[merge_into], "', fontcolor='", fontcolor, "', label = \"", merge_into, "\"];
-    ")
-
-    # Define the individual nodes and edges
-    for (node in merged_nodes) {
-      fontcolor <- ifelse(node %in% names(fontcolor_nodes),
-                          fontcolor_nodes[node], default_fontcolor)
-
-      # Create a unique identifier for the node
-      node_unique <- get_unique_node_name(node)
-
-      diagram_code <- paste0(diagram_code, "
-        \"", node_unique, "\" [shape=box, fillcolor='", colors[node], "', fontcolor='", fontcolor, "', label = \"", node, "\"];
-        \"", node_unique, "\" -> \"", merge_into_unique, "\";
-      ")
-    }
-  }
-
-  # Close the diagram definition
-  diagram_code <- paste0(diagram_code, "
-      # Set global graph attributes
-      graph [layout = dot, rankdir = TB];
-    }
-  ")
-
-  # Render the diagram
-  DiagrammeR::grViz(diagram_code)
-}
-
-
 #' Exclude Redundant Cell Populations from Reference
 #'
 #' This function filters out redundant cell types from a reference dataset based on their counts and proportions in the query dataset. It uses an initial projection to classify the cell types and then excludes those with counts below a specified minimum or a proportion below a specified percentage.
 #'
 #' @param min_cells An integer specifying the minimum number of cells for a cell type to be retained. Default is 50.
 #' @param min_pct A numeric value specifying the minimum percentage of cells for a cell type to be retained. Default is 0.001.
+#' @param query Tibble of query data (cells in rows, markers in columns)
 #' @inheritParams adapt_reference
 #' @return A data frame containing the filtered reference dataset with redundant cell types excluded.
 #' @export
@@ -480,9 +414,9 @@ excl_redundant_populations <- function(reference,
   excl_celltypes <- tibble::tibble(
     celltype = names(celltype_counts),
     n = celltype_counts
-  ) %>%
-    dplyr::mutate(pct = 100 * n / sum(n)) %>%
-    dplyr::filter(n < min_cells | pct < min_pct) %>%
+  ) |>
+    dplyr::mutate(pct = 100 * n / sum(n)) |>
+    dplyr::filter(n < min_cells | pct < min_pct) |>
     dplyr::pull(celltype)
 
   if (verbose) {
@@ -496,7 +430,7 @@ excl_redundant_populations <- function(reference,
     }
   }
 
-  reference <- reference[reference$celltype %!in% excl_celltypes]
+  reference <- reference[reference$celltype %!in% excl_celltypes,]
 
   return(reference)
 }
@@ -516,10 +450,12 @@ excl_redundant_populations <- function(reference,
 #' @param exclude_celltypes Only relevant if `using_pbmc = TRUE`. Character
 #' vector of cell types of the Seurat PBMC reference to NOT consider during cell
 #' type classification. Defaults to non-PBMCs.
+#' @param celltype_col Column with celltype information.
 #' @inheritParams map_marker_names
 #' @inheritParams merge_populations
 #' @inheritParams identify_similar_populations
 #' @inheritParams classify_cells
+#' @inheritParams ranger::ranger
 #' @importFrom stats aggregate
 #'
 #' @return Tibble of adapted reference
@@ -560,7 +496,7 @@ adapt_reference <- function(reference = pbmc_reference,
     }
 
     # find similar populations for all vs all remaining populations
-    similar_populations <- cyDefine:::identify_similar_populations(
+    similar_populations <- identify_similar_populations(
       reference = reference,
       markers = markers,
       mtry = mtry,

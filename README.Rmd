@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 
 # cyDefine 
 
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+
 `cyDefine` robustly identifies canonical cell types as well as unassigned (and potentially novel) cells in various single-cell cytometry datasets.
 
 ## Article
@@ -44,12 +46,94 @@ To view the documentation for using `cyDefine`, start R and enter:
 browseVignettes("cyDefine")
 ```
 
-<!-- ## Usage -->
+## Usage
 
-<!-- Please see the vignettes for a detailed description of usage. -->
+Please see the vignettes for a detailed description of usage.
 
-<!-- Here is a quick run-through of the main functionalities. -->
+Here is a quick run-through of the main functionalities.
 
+```{r exclude}
+library(cyDefine)
+# Run initial projection to exclude redundant cell types (Optional)
+reference <- excl_redundant_populations(
+      reference = example_reference,
+      query = example_query,
+      markers = example_markers,
+      min_cells = 50,
+      min_pct = 0.05,
+      num.threads = 4,
+      mtry = floor(length(example_markers)/3),
+      seed = 332
+    )
+```
+
+
+```{r cyDefine, message=FALSE}
+
+# Run cyDefine
+classified_query <- cyDefine(
+  reference = reference, 
+  query = example_query, 
+  markers = example_markers, 
+  num.threads = 4,
+  mtry = floor(length(example_markers)/3),
+  num.trees = 500,
+  adapt_reference = TRUE, 
+  using_pbmc = FALSE, 
+  batch_correct = TRUE, 
+  xdim = 6, ydim = 6,
+  norm_method = "scale",
+  identify_unassigned = TRUE, 
+  train_on_unassigned = FALSE,
+  seed = 332,
+  verbose = TRUE
+  )
+reference <- classified_query$reference
+classified_query <- classified_query$query
+
+
+```
+
+## Visualizations
+
+cyDefine provides functionality for visualizing your results by UMAP, cell type abundance, and marker expression.
+Additionally, you can create a chart of the merged cell populations during reference adaptation.
+
+```{r, fig.height=5, fig.width=12}
+# Diagram of reference adaptation is only relevant if cell populations are merged (if "celltype_original" is created)
+if ("celltype_original" %in% colnames(reference)) 
+  plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}
+
+# Define a color per cell type + black for unassigned
+celltype_colors <- get_distinct_colors(unique(reference$celltype), 
+                                       add_unassigned = TRUE)
+
+# UMAP of reference and query
+plot_umap(reference,
+          classified_query,
+          example_markers,
+          sample_n = 5000,
+          colors = celltype_colors)
+```
+
+
+```{r, message=FALSE, warning=FALSE, fig.height = 7, fig.width = 13}
+# Barplot of cell type abundances in query
+plot_abundance(predicted_populations = classified_query$predicted_celltype,
+               colors = celltype_colors)
+```
+
+
+```{r, message=FALSE, warning=FALSE, fig.height = 10, fig.width = 10}
+# Heatmap of marker expressions per cell type in query
+plot_heatmap(classified_query, 
+             population_col = "predicted_celltype",
+             markers_to_plot = example_markers)
+
+```
 
 ## Report issues
 

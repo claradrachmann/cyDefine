@@ -31,56 +31,49 @@ batch_correct <- function(
     if (verbose) {
       message("Sample information is not provided for reference - assuming one sample.")
     }
-    reference <- reference %>%
-      dplyr::mutate(sample = "ref_sample")
+    reference$sample <- "ref_sample"
   }
 
   if ("sample" %!in% colnames(query)) {
     if (verbose) {
       message("Sample information is not provided for query - assuming one sample.")
     }
-    query <- query %>%
-      dplyr::mutate(sample = "dat_sample")
+    query$sample <- "dat_sample"
   }
 
   if ("batch" %!in% colnames(reference)) {
     if (verbose) {
       message("Batch information is not provided for reference - assuming one batch.")
     }
-    reference <- reference %>%
-      dplyr::mutate(batch = "ref_batch")
+    reference$batch <- "ref_batch"
   }
 
   if ("batch" %!in% colnames(query)) {
     if (verbose) {
       message("Batch information is not provided for query - assuming one batch.")
     }
-    query <- query %>%
-      dplyr::mutate(batch = "dat_batch")
+    query$batch <- "dat_batch"
   }
 
   # check uniqueness of samples
-  if (length(intersect(
+  common_samples <- intersect(
     unique(reference$sample),
-    unique(query$sample)
-  )) > 0) {
+    unique(query$sample))
+  if (length(common_samples) > 0) {
     warning(
       "Overlapping sample ID(s) found between reference and query. ",
       "Assuming that these represent different samples. Adding '_ref' ",
       "and '_query', respectively, to the end of overlapping sample ID(s)"
     )
 
-    for (s in intersect(
-      unique(reference$sample),
-      unique(query$sample)
-    )) {
-      reference <- reference %>%
+    for (s in common_samples) {
+      reference <- reference |>
         dplyr::mutate(sample = replace(
           sample,
           sample == s,
           paste0(s, "_ref")
         ))
-      query <- query %>%
+      query <- query |>
         dplyr::mutate(sample = replace(
           sample,
           sample == s,
@@ -128,11 +121,11 @@ batch_correct <- function(
 
   rm(uncorrected)
 
-  corrected_ref <- corrected %>%
-    dplyr::filter(sample %in% unique(reference$sample)) %>%
+  corrected_ref <- corrected |>
+    dplyr::filter(sample %in% unique(reference$sample)) |>
     dplyr::select(colnames(reference))
-  corrected_query <- corrected %>%
-    dplyr::filter(sample %in% unique(query$sample)) %>%
+  corrected_query <- corrected |>
+    dplyr::filter(sample %in% unique(query$sample)) |>
     dplyr::select(colnames(query))
 
   return(list(

@@ -43,6 +43,7 @@ cyDefine <- function(
       using_pbmc,
       TRUE,
       FALSE),
+    min_f1 = 0.7,
     batch_correct = TRUE,
     xdim = 6, ydim = 6,
     identify_unassigned = TRUE,
@@ -67,8 +68,10 @@ cyDefine <- function(
     seed = 332,
     verbose = TRUE) {
 
-  if (reference == "pbmc" | reference == "pbmc_reference") {
-    reference <- getReference("pbmc", verbose = verbose)
+  if (inherits(reference, "character")) {
+    if (reference == "pbmc" | reference == "pbmc_reference") {
+      reference <- getReference("pbmc", verbose = verbose)
+    }
   }
 
   if (adapt_reference) {
@@ -80,6 +83,7 @@ cyDefine <- function(
       markers = markers,
       num.threads = num.threads,
       mtry = mtry,
+      min_f1 = min_f1,
       using_pbmc = using_pbmc,
       verbose = verbose
       )

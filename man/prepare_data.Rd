@@ -87,9 +87,13 @@ extract_filename_into = c("batch", "sample").}
 
 \item{derand}{Derandomize. Should be TRUE for CyTOF data, otherwise FALSE.}
 
+\item{compensate}{Run compensation}
+
 \item{.keep}{Keep all channels. If FALSE, channels that are not transformed are removed}
 
 \item{clean_colnames}{(Default: TRUE). A logical defining whether column names should be cleaned or not. Cleaning involves removing isotope tags, spaces, dashes, underscores, and all bracket types.}
+
+\item{verbose}{Verbosity}
 }
 \value{
 Tibble of data (cells in rows, markers in columns)
@@ -98,24 +102,4 @@ Tibble of data (cells in rows, markers in columns)
 This is a wrapper function of cyCombine's data preparation functions, with
 some extra added functionality, taking you from a directory of FCS files or
 a flowset to a tidy tibble.
-}
-\examples{
-data_dir <- system.file("extdata", package = "cyDefine", mustWork = TRUE)
-
-uncorrected <- data_dir \%>\%
-  prepare_data(extract_filename_regex = "Helios2_(Plate\\\\d+)_(Sample\\\\d+)_",
-  extract_filename_into = c("batch", "sample"),
-  markers = markers)
-
-\dontrun{
-uncorrected <- data_dir \%>\%
-  prepare_data(metadata = "metadata.csv",
-  markers = markers,
-  filename_col = "FCS_name",
-  batch_ids = "Batch",
-  condition = "condition",
-  down_sample = TRUE,
-  sample_size = 100000)
-}
-
 }

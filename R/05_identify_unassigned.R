@@ -76,11 +76,13 @@ MAD_max_distance <- function(distances, MAD_factor = 3) {
 
 
 #' Identify unassigned cells
-#' @param query Already classified... ???
 #' @inheritParams classify_cells
-#' @param tune_params_on_unassigned ???
-#' @param pct_expl_var ???
-#' @param MAD_factor ???
+#' @param query Tibble of classified query data (cells in rows, markers in columns)
+#' @param train_on_unassigned Boolean indicating whether unassigned cells should be included in model training.
+#' Recommended when reference and query are samples stemming from the same experiment and unassigned
+#' cells of the query are assumed to be representative of those found in the reference.
+#' @param pct_expl_var The percentage threshold of explained variance for PC selection
+#' @param MAD_factor Median average distance threshold of the outlier to its assigned population
 #'
 #' @return A tibble of unassigned cells
 #' @export
@@ -108,9 +110,10 @@ identify_unassigned <- function(reference,
   #                       " principal components and MAD-factor ", MAD_factor)}
 
   if (train_on_unassigned) {
+    unassigned_name <- reference$celltype[grepl(unassigned_name, reference$celltype)][1]
     # check dimensions
-    n_unassigned <- reference %>%
-      dplyr::filter(celltype == !!unassigned_name) %>%
+    n_unassigned <- reference |>
+      dplyr::filter(celltype == !!unassigned_name) |>
       nrow()
 
     if (n_unassigned < 20) {
@@ -144,8 +147,8 @@ identify_unassigned <- function(reference,
         )
 
         # check dimension
-        n_popu <- celltype_ref %>%
-          dplyr::filter(celltype == !!popu) %>%
+        n_popu <- celltype_ref |>
+          dplyr::filter(celltype == !!popu) |>
           nrow()
 
         if (n_popu < 30) {
@@ -181,7 +184,7 @@ identify_unassigned <- function(reference,
       }
     )
 
-    preds <- dplyr::as_tibble(t(preds)) %>%
+    preds <- dplyr::as_tibble(t(preds)) |>
       tidyr::unnest(c(
         id,
         predicted_celltype
@@ -231,7 +234,7 @@ identify_unassigned <- function(reference,
 
         # compute cell type specific PCA
         pca_embed <- stats::prcomp(
-          x = celltype_all %>%
+          x = celltype_all |>
             dplyr::select(dplyr::all_of(markers)),
           retx = TRUE,
           center = TRUE,
@@ -279,7 +282,7 @@ identify_unassigned <- function(reference,
       }
     )
 
-    distances <- dplyr::as_tibble(t(distances)) %>%
+    distances <- dplyr::as_tibble(t(distances)) |>
       tidyr::unnest(c(
         id,
         max_distance,
@@ -292,11 +295,11 @@ identify_unassigned <- function(reference,
     )
 
     # change predicted population to "unassigned" for cells with distance > max_distance to their predicted celltype
-    query <- query %>%
+    query <- query |>
       dplyr::mutate(predicted_celltype = ifelse(distance > max_distance,
         "unassigned",
         as.character(model_prediction)
-      )) %>%
+      )) |>
       dplyr::arrange(id)
   }
 

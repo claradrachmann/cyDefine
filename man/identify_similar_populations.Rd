@@ -2,32 +2,38 @@
 % Please edit documentation in R/02_adapt_reference.R
 \name{identify_similar_populations}
 \alias{identify_similar_populations}
-\title{Identify indistinguishable cell type populations based on query markers}
+\title{Identify indistinguishable cell type populations in the reference, based on
+query marker panel}
 \usage{
 identify_similar_populations(
-  population_pairs,
   reference,
   markers,
-  min_f1 = 0.6,
+  num.threads = 4,
+  mtry = mtry,
+  min_f1 = 0.7,
   seed = 332,
   verbose = TRUE
 )
 }
 \arguments{
-\item{population_pairs}{Data frame of two character columns with one cell
-type in each, and rows representing all pairs of cell types to be tested.}
-
 \item{reference}{desc}
+
+\item{markers}{Character vector of available markers present in both query
+and reference.}
 
 \item{min_f1}{desc}
 
 \item{seed}{desc}
 
 \item{verbose}{desc}
+
+\item{population_pairs}{Data frame of two character columns with one cell
+type in each, and rows representing all pairs of cell types to be tested.}
 }
 \value{
 A tibble of similar populations
 }
 \description{
-Identify indistinguishable cell type populations based on query markers
+Identify indistinguishable cell type populations in the reference, based on
+query marker panel
 }

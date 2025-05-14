@@ -8,20 +8,25 @@ cyDefine(
   reference,
   query,
   markers,
-  using_seurat = FALSE,
-  adapt_reference = ifelse(using_seurat, TRUE, FALSE),
+  using_pbmc = FALSE,
+  adapt_reference = ifelse(using_pbmc, TRUE, FALSE),
+  min_f1 = 0.7,
   batch_correct = TRUE,
+  xdim = 6,
+  ydim = 6,
   identify_unassigned = TRUE,
-  norm_method = ifelse(using_seurat, "rank", "scale"),
+  norm_method = ifelse(using_pbmc, "rank", "scale"),
   covar = NULL,
   load_model = NULL,
   save_model = NULL,
-  param_grid = expand.grid(mtry = as.integer(seq(from = round(0.25 * length(markers)), to
-    = round(0.9 * length(markers)), length.out = 8)), min.node.size = seq(1, 6, 2),
-    splitrule = "gini"),
+  mtry = 22,
+  splitrule = "gini",
+  min.node.size = 1,
+  num.trees = 300,
+  num.threads = 4,
+  save_adapted_reference = NULL,
   unassigned_name = "unassigned",
-  train_on_unassigned = ifelse(using_seurat, FALSE, TRUE),
-  n_cores = 2,
+  train_on_unassigned = ifelse(using_pbmc, FALSE, TRUE),
   seed = 332,
   verbose = TRUE
 )
@@ -36,25 +41,29 @@ PBMC atlas will be adapted and used as reference.}
 \item{markers}{Character vector of available markers present in both query
 and reference.}
 
-\item{using_seurat}{Boolean indicating whether the Seurat PBMC atlas is
+\item{using_pbmc}{Boolean indicating whether the Seurat PBMC atlas is
 being supplied as reference. This info is needed to enable automated
 screening of common marker names in \code{map_marker_names()} and tree-based
 merging of cell type labels.}
 
 \item{adapt_reference}{Boolean indicating whether the provided reference
 should be adapted to match the query marker panel. Default: FALSE if
-\code{using_seurat} is FALSE, otherwise TRUE.}
+\code{using_pbmc} is FALSE, otherwise TRUE.}
+
+\item{min_f1}{Minimum F1 score required for two cell types to be separated}
 
 \item{batch_correct}{Boolean indicating whether or not you want to perform
 batch correction via cyCombine}
+
+\item{xdim}{The x-dimension size of the SOM.}
+
+\item{ydim}{The y-dimension size of the SOM.}
 
 \item{identify_unassigned}{Boolean indicating whether or not you want to
 identify unassigned cells after classifying the cells.}
 
 \item{norm_method}{Normalization method for cyCombine batch correction.
-Should be either 'rank', 'scale' or 'qnorm'. Default is 'scale' unless
-reference is NULL, then 'rank', assuming heavy batch effects between Seurat
-atlas and query.}
+Should be either 'rank', 'scale', or 'qnorm'. Default is 'scale'.}
 
 \item{covar}{The covariate ComBat should use. Can be a vector or a column name in the input tibble.
 If NULL, no covar will be used}
@@ -63,7 +72,23 @@ If NULL, no covar will be used}
 
 \item{save_model}{Optional: Path to save an rda file of the trained model}
 
-\item{param_grid}{Optional: Modify parameter grid to train on}
+\item{mtry}{Number of variables to possibly split at in each node. Default is the (rounded down) square root of the number variables. Alternatively, a single argument function returning an integer, given the number of independent variables.}
+
+\item{splitrule}{Splitting rule. For classification and probability estimation "gini", "extratrees" or "hellinger" with default "gini".
+For regression "variance", "extratrees", "maxstat", "beta" or "poisson" with default "variance".
+For survival "logrank", "extratrees", "C" or "maxstat" with default "logrank".}
+
+\item{min.node.size}{Minimal node size to split at. Default 1 for classification, 5 for regression, 3 for survival, and 10 for probability. For classification, this can be a vector of class-specific values.}
+
+\item{num.trees}{Number of trees.}
+
+\item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
+
+\item{save_adapted_reference}{Default: NULL. Save the adapted reference in a
+specified object name or as "adapted_reference.rds" in a specified path.
+Usage: FAlSE/NULL - not stored.
+TRUE/path - stored as "adapted_reference.rds" at "./" or path.
+path/to/filename.rds - stored as "filename.rds" at path/to/.}
 
 \item{unassigned_name}{Name used for unassigned cells}
 
@@ -71,10 +96,7 @@ If NULL, no covar will be used}
 Recommended when reference and query are samples stemming from the same experiment and unassigned
 cells of the query are assumed to be representative of those found in the reference.}
 
-\item{n_cores}{The number of cores to use for parallel execution. Obs:
-parallel execution only performed if the 'doParallel' package is installed!}
-
-\item{seed}{The seed to use when creating the SOM.}
+\item{seed}{desc}
 
 \item{verbose}{Verbosity}
 }

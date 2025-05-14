@@ -8,6 +8,8 @@ identify_unassigned(
   reference,
   query,
   markers,
+  num.threads = 4,
+  mtry = 22,
   train_on_unassigned = TRUE,
   unassigned_name = "unassigned",
   pct_expl_var = 0.95,
@@ -19,9 +21,13 @@ identify_unassigned(
 \arguments{
 \item{reference}{Tibble of reference data (cells in rows, markers in columns)}
 
-\item{query}{Already classified... ???}
+\item{query}{Tibble of classified query data (cells in rows, markers in columns)}
 
 \item{markers}{Character vector of available markers}
+
+\item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
+
+\item{mtry}{Number of variables to possibly split at in each node. Default is the (rounded down) square root of the number variables. Alternatively, a single argument function returning an integer, given the number of independent variables.}
 
 \item{train_on_unassigned}{Boolean indicating whether unassigned cells should be included in model training.
 Recommended when reference and query are samples stemming from the same experiment and unassigned
@@ -29,15 +35,13 @@ cells of the query are assumed to be representative of those found in the refere
 
 \item{unassigned_name}{Name used for unassigned cells}
 
-\item{pct_expl_var}{???}
+\item{pct_expl_var}{The percentage threshold of explained variance for PC selection}
 
-\item{MAD_factor}{???}
+\item{MAD_factor}{Median average distance threshold of the outlier to its assigned population}
 
 \item{seed}{Random seed}
 
 \item{verbose}{Verbosity}
-
-\item{tune_params_on_unassigned}{???}
 }
 \value{
 A tibble of unassigned cells

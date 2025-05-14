@@ -3,7 +3,7 @@
 \docType{data}
 \name{example_markers}
 \alias{example_markers}
-\title{The marker panel of \code{example_reference} and \code{example_query}, i.e. the panel
+\title{The marker panel of \code{example_reference} and \code{example_query}, i.e., the panel
 of the Z2YR CyTOF dataset.}
 \format{
 A character vector of length 42
@@ -12,7 +12,7 @@ A character vector of length 42
 example_markers
 }
 \description{
-The marker panel of \code{example_reference} and \code{example_query}, i.e. the panel
+The marker panel of \code{example_reference} and \code{example_query}, i.e., the panel
 of the Z2YR CyTOF dataset.
 }
 \keyword{datasets}

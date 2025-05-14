@@ -8,17 +8,17 @@ classify_cells(
   reference,
   query,
   markers,
+  subsample = 1000,
+  mtry = 22,
+  min.node.size = 1,
+  splitrule = "gini",
+  num.trees = 300,
   unassigned_name = "unassigned",
   load_model = NULL,
   save_model = NULL,
-  param_grid = expand.grid(mtry = as.integer(seq(from = round(0.25 * length(markers)), to
-    = round(0.9 * length(markers)), length.out = 8)), min.node.size = seq(1, 6, 2),
-    splitrule = "gini"),
+  num.threads = 4,
   return_pred = FALSE,
-  n_cv_folds = 5,
-  n_trees = 100,
   seed = 332,
-  n_cores = 2,
   verbose = TRUE
 )
 }
@@ -29,30 +29,31 @@ classify_cells(
 
 \item{markers}{Character vector of available markers}
 
+\item{subsample}{Number of cells to use for training from each cell type}
+
+\item{mtry}{Number of variables to possibly split at in each node. Default is the (rounded down) square root of the number variables. Alternatively, a single argument function returning an integer, given the number of independent variables.}
+
+\item{min.node.size}{Minimal node size to split at. Default 1 for classification, 5 for regression, 3 for survival, and 10 for probability. For classification, this can be a vector of class-specific values.}
+
+\item{splitrule}{Splitting rule. For classification and probability estimation "gini", "extratrees" or "hellinger" with default "gini".
+For regression "variance", "extratrees", "maxstat", "beta" or "poisson" with default "variance".
+For survival "logrank", "extratrees", "C" or "maxstat" with default "logrank".}
+
+\item{num.trees}{Number of trees.}
+
 \item{unassigned_name}{Name used for unassigned cells}
 
 \item{load_model}{Optional: Path to an rda file of a previously trained model}
 
 \item{save_model}{Optional: Path to save an rda file of the trained model}
 
-\item{param_grid}{Optional: Modify parameter grid to train on}
+\item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
 
 \item{return_pred}{Boolean indicating if only predictions should be returned as a character vector}
 
-\item{n_cv_folds}{Number of cross-validation folds used for hyperparameter tuning}
-
-\item{n_trees}{Number of trees in the random forest}
-
 \item{seed}{Random seed}
 
-\item{n_cores}{The number of cores to use for parallel execution. Obs:
-parallel execution only performed if the 'doParallel' package is installed!}
-
 \item{verbose}{Verbosity}
-
-\item{train_on_unassigned}{Boolean indicating whether unassigned cells should be included in model training.
-Recommended when reference and query are samples stemming from the same experiment and unassigned
-cells of the query are assumed to be representative of those found in the reference.}
 }
 \value{
 Tibble of query data with an added column of the predicted cell type, 'model_prediction'

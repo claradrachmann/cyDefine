@@ -8,6 +8,8 @@
 #' @inheritParams cyCombine::compile_fcs
 #' @inheritParams cyCombine::convert_flowset
 #' @inheritParams cyCombine::transform_asinh
+#' @param compensate Run compensation
+#' @param verbose Verbosity
 #' @param transform If TRUE, the data will be transformed; if FALSE, it will not.
 #' @param extract_filename_regex Optional: Use, if there are details that you
 #' want to keep (e.g. sample, batch or cell type information) saved in the
@@ -23,28 +25,6 @@
 #'
 #' @return Tibble of data (cells in rows, markers in columns)
 #'
-#' @examples
-#' data_dir <- system.file("extdata", package = "cyDefine", mustWork = TRUE)
-#'
-#' uncorrected <- data_dir %>%
-#'   prepare_data(
-#'     extract_filename_regex = "Helios2_(Plate\\d+)_(Sample\\d+)_",
-#'     extract_filename_into = c("batch", "sample"),
-#'     markers = markers
-#'   )
-#'
-#' \dontrun{
-#' uncorrected <- data_dir %>%
-#'   prepare_data(
-#'     metadata = "metadata.csv",
-#'     markers = markers,
-#'     filename_col = "FCS_name",
-#'     batch_ids = "Batch",
-#'     condition = "condition",
-#'     down_sample = TRUE,
-#'     sample_size = 100000
-#'   )
-#' }
 #'
 #' @export
 prepare_data <- function(data_dir = NULL,
@@ -73,13 +53,14 @@ prepare_data <- function(data_dir = NULL,
                          .keep = FALSE,
                          clean_colnames = TRUE,
                          verbose = TRUE) {
+  check_package("flowCore", repo = "Bioc")
   # Stop if no data is given
   if (is.null(data_dir) & is.null(flowset)) stop("No data given.")
 
   # directory of FCS files
   if (!is.null(data_dir)) {
     # Remove slash at end of data_dir
-    if (data_dir %>% endsWith("/")) data_dir <- data_dir %>% stringr::str_sub(end = -2)
+    if (endsWith(data_dir, "/")) data_dir <- stringr::str_sub(data_dir, end = -2)
 
     if (verbose) {
       message("Preparing FCS files in directory ", data_dir)
@@ -87,8 +68,7 @@ prepare_data <- function(data_dir = NULL,
 
     # Compile directory to flowset
     if (is.null(flowset)) {
-      flowset <- data_dir %>%
-        cyCombine::compile_fcs(pattern = pattern)
+      flowset <- cyCombine::compile_fcs(data_dir, pattern = pattern)
     }
 
     # Compensate for spectral overlap
@@ -111,8 +91,8 @@ prepare_data <- function(data_dir = NULL,
 
   # Convert flowset to dataframe
   if (verbose) message("Converting flowset to data frame")
-  fcs_data <- flowset %>%
-    cyCombine::convert_flowset(
+  fcs_data <- cyCombine::convert_flowset(
+      flowset,
       metadata = metadata,
       filename_col = filename_col,
       sample_ids = sample_ids,
@@ -127,22 +107,21 @@ prepare_data <- function(data_dir = NULL,
       panel_channel = panel_channel,
       panel_antigen = panel_antigen,
       clean_colnames = clean_colnames
-    ) %>%
-    # Transform dataset with asinh
-    purrr::when(
-      transform ~ cyCombine::transform_asinh(.,
-        markers = markers,
-        cofactor = cofactor,
-        derand = derand,
-        .keep = .keep
-      ),
-      ~.
     )
+  if (transform) {# Transform dataset with asinh
+    fcs_data <- cyCombine::transform_asinh(
+      fcs_data,
+      markers = markers,
+      cofactor = cofactor,
+      derand = derand,
+      .keep = .keep
+    )
+  }
 
   # Extract relevant information from file names (saved in 'sample' column)
   if (!is.null(extract_filename_regex)) {
-    fcs_data <- fcs_data %>%
-      tidyr::extract(
+    fcs_data <- tidyr::extract(
+        fcs_data,
         col = sample,
         into = extract_filename_into,
         regex = extract_filename_regex

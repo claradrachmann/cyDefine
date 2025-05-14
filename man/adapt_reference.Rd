@@ -5,33 +5,45 @@
 \title{Adapt Seurat PBMC reference to query marker panel}
 \usage{
 adapt_reference(
-  reference,
-  query,
+  reference = pbmc_reference,
   markers,
-  using_seurat = TRUE,
+  using_pbmc = TRUE,
+  initial_project = FALSE,
   exclude_celltypes = c("Doublet", "Platelet", "Eryth", "HSPC"),
-  celltype_col = ifelse(using_seurat, "celltype.l2", "celltype"),
+  celltype_col = ifelse(using_pbmc, "celltype.l2", "celltype"),
   min_f1 = 0.7,
   seed = 332,
+  num.threads = 4,
+  mtry = 22,
   verbose = TRUE
 )
 }
 \arguments{
 \item{reference}{Tibble of reference data (cells in rows, markers in columns)}
 
-\item{query}{Tibble of query data (cells in rows, markers in columns)}
-
 \item{markers}{Character vector of available markers present in both query
 and reference.}
 
-\item{using_seurat}{Boolean indicating whether or not the Seurat PBMC atlas is
+\item{using_pbmc}{Boolean indicating whether or not the Seurat PBMC atlas is
 used as reference}
 
-\item{exclude_celltypes}{Only relevant if \code{using_seurat = TRUE}. Character
-vector of cell types of the Seurat reference to NOT consider during cell
+\item{initial_project}{Boolean indicating whether cyDefine should perform an
+initial projection to remove redundant cell types of the reference. Set to
+FALSE, if you want to keep all cell types of the reference. Defaults to TRUE.}
+
+\item{exclude_celltypes}{Only relevant if \code{using_pbmc = TRUE}. Character
+vector of cell types of the Seurat PBMC reference to NOT consider during cell
 type classification. Defaults to non-PBMCs.}
 
+\item{celltype_col}{Column with celltype information.}
+
 \item{min_f1}{Minimum F1 score required for two cell types to be separated}
+
+\item{seed}{desc}
+
+\item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
+
+\item{mtry}{Number of variables to possibly split at in each node. Default is the (rounded down) square root of the number variables. Alternatively, a single argument function returning an integer, given the number of independent variables.}
 
 \item{verbose}{Verbosity}
 }

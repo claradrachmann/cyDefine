@@ -17,28 +17,33 @@ Description: A package for robust identification of canonical cell types
 License: MIT + file LICENSE
 biocViews:
 Imports: 
-    ranger,
     cyCombine,
-    dplyr,
-    magrittr,
-    purrr,
+    ranger,
+    dplyr, tibble, stringr, tidyr, ggplot2,
     stats,
-    stringr,
-    tidyr
-Suggests: 
-    ggplot2,
+    grDevices,
+    RColorBrewer,
     igraph,
+    pheatmap,
+    pbapply
+Suggests: 
+    ggalluvial,
+    Rfast,
+    flowCore,
+    DiagrammeR,
     knitr,
     matrixcalc,
-    patchwork,
     rmarkdown,
     testthat (>= 3.0.0),
-    uwot
+    uwot,
+    patchwork,
+    zen4R
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 LazyData: true
+LazyDataCompression: xz
 Depends: 
-    R (>= 4.0.0)
+    R (>= 4.2.0)

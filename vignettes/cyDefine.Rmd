@@ -63,7 +63,7 @@ markers <- c('CD16', 'CD26', 'CD8a', 'CD33', 'CD161', 'CCR10', 'CCR7', 'CCR9',
              'CXCR5', 'CD38', 'a4b7', 'PD1', 'CLA')
 
 # Prepare reference tibble from directory of FCS files
-reference <- prepare_data(
+reference <- cyDefine::prepare_data(
   data_dir = system.file("extdata", package = "cyDefine", mustWork = TRUE), 
   pattern = "Plate3_Sample1", # Using Sample1 from Plate3 as reference
   markers = markers,
@@ -153,30 +153,33 @@ query <- transform_asinh(
 ## Run cyDefine with a single function
 
 This code assumes that you are already familiar with the modules of cyDefine. Basically, `cyDefine()` is a wrapper around the `batch_correct()`, `classify_cells()`, and `identify_unassigned()` pipeline, which are all explained in more detail below. This single code chunk allows you to easily run the code of all following sections.
-```{r, message = FALSE}
+```{r, message=FALSE}
 classified_query <- cyDefine(
   reference, 
   query, 
   markers, 
-  num.threads = 10,
-  mtry = floor(length(markers)/2),
-  num.trees = 300,
+  num.threads = 4,
+  mtry = floor(length(markers)/3),
+  num.trees = 500,
   adapt_reference = TRUE, 
-  using_seurat = FALSE, 
+  using_pbmc = FALSE, 
   batch_correct = TRUE, 
   xdim = 6, ydim = 6,
   norm_method = "scale",
   identify_unassigned = TRUE, 
   train_on_unassigned = TRUE,
   unassigned_name = "unassigned",
-  seed = 332
+  seed = 332,
+  verbose = TRUE
   )
-
+reference <- classified_query$reference
+classified_query <- classified_query$query
 
 ```
 
+## Running the cyDefine workflow in steps
 
-## Initial projection
+### Initial projection
 
 ```{r}
 # Run initial projection to exclude redundant cell types
@@ -186,14 +189,29 @@ reference <- excl_redundant_populations(
       markers = markers,
       min_cells = 50,
       min_pct = 0.05,
-      num.threads = num.threads,
-      mtry = mtry,
-      seed = seed,
-      verbose = verbose
+      num.threads = 4,
+      mtry = floor(length(markers)/3),
+      seed = 332
     )
 ```
 
-## Batch correction via cyCombine
+### Adapt reference
+
+```{r adapt}
+reference <- adapt_reference(
+      reference = reference,
+      markers = markers,
+      num.threads = 4,
+      mtry = floor(length(markers)/3),
+      min_f1 = .7,
+      using_pbmc = FALSE,
+      verbose = TRUE
+      )
+
+```
+
+
+### Batch correction via cyCombine
 
 <!-- cyCombine generally recommends the use of Z-score normalization for mild batch effects and rank-based normalization when strong batch effects are expected (for details, see the original publication). This is also valid for the application within cyDefine. Accordingly, if strong batch effects are expected between reference and query, but minor batch effects are expected within reference and/or query, batch correction should be performed in two steps. First, correction of the within-query or -reference batch effects using Z-score normalization and subsequently, correction of the batch effects between the datasets using rank-based normalization. However, if all batch effects are expected to be of equal magnitude, they can be corrected in a single step. -->
 
@@ -216,7 +234,7 @@ query <- corrected$query
 
 
 
-## Cell type assignment
+### Cell type assignment
 
 Now, our reference and query data are directly comparable. `cyDefine` enables the transfer of cell type labels from your reference dataset onto your query. The classified cell types will be saved in a column named `model_prediction`.
 
@@ -232,7 +250,7 @@ levels(classified_query$model_prediction)
 ```
 
 
-## Identification of unassigned cells
+### Identification of unassigned cells
 
 After classifying all query cells to one of the canonical cell types of your reference, you might want to filter out unassigned cells, i.e., cells that do not seem to actually belong to the population to which it was predicted to belong. Unassigned cells can represent artifacts or cell types that are not defined in the reference, i.e., they could potentially represent biological novelties. cyDefine has two strategies for identifying unassigned cells, a supervised strategy using unassigned cells of the reference in model training, and an unsupervised strategy that does not rely on unassigned cells in the reference. In this example, the supervised strategy is applied as the query sample is expected to hold similar cell types as the reference. The new cell type labels will be saved in a column named `predicted_celltype`.
 
@@ -254,6 +272,11 @@ levels(classified_query$predicted_celltype)
 ## Visualizations
 
 cyDefine provides functionality for visualizing your results by UMAP, cell type abundance, and marker expression.
+Additionally, you can create a chart of the merged cell populations during reference adaptation.
+
+```{r, fig.height=5, fig.width=12}
+plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
+```
 
 ```{r, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}
 
@@ -282,6 +305,4 @@ plot_heatmap(classified_query,
              markers_to_plot = markers)
 
 ```
-
-
 

@@ -1,3 +1,6 @@
+
+#' Compute macro F1
+#' @noRd
 compute_f1 <- function(y_pred, y_test) {
   y_pred <- as.character(y_pred)
   y_test <- as.character(y_test)
@@ -28,10 +31,11 @@ compute_f1 <- function(y_pred, y_test) {
   return(f1_scores)
 }
 
-
+#' Create confusion matrix
+#' @noRd
 create_confusion_matrix <- function(y_pred, y_test) {
-  table(y_pred, y_test) %>%
-    as.data.frame() %>%
+  table(y_pred, y_test) |>
+    as.data.frame() |>
     dplyr::rename(predicted = y_pred, observed = y_test, n = Freq)
 }
 
@@ -39,12 +43,12 @@ create_confusion_matrix <- function(y_pred, y_test) {
 
 #' Summary function for using macro-average F1-score as metric in caret::trainControl
 #'
-#'
+#' @noRd
 #' @return Macro-average F1 score
 #'
 macroF1_summary <- function(data) {
   # multiclass classification performance
-  f1 <- cyDefine:::compute_f1(data$pred, data$obs)
+  f1 <- compute_f1(data$pred, data$obs)
   f1[is.na(f1)] <- 0
   f1 <- mean(f1)
   names(f1) <- "macroF1"
@@ -60,16 +64,13 @@ macroF1_summary <- function(data) {
 #' @param markers Character vector of available markers
 #' @param subsample Number of cells to use for training from each cell type
 #' @param unassigned_name Name used for unassigned cells
-#' @param train_on_unassigned Boolean indicating whether unassigned cells should be included in model training.
-#' Recommended when reference and query are samples stemming from the same experiment and unassigned
-#' cells of the query are assumed to be representative of those found in the reference.
 #' @param load_model Optional: Path to an rda file of a previously trained model
 #' @param save_model Optional: Path to save an rda file of the trained model
 #' @param return_pred Boolean indicating if only predictions should be returned as a character vector
 #' @param seed Random seed
 #' @param verbose Verbosity
 #' @inheritParams ranger::ranger
-#'
+#' @importFrom stats predict
 #' @return Tibble of query data with an added column of the predicted cell type, 'model_prediction'
 #' @export
 #'
@@ -96,7 +97,7 @@ classify_cells <- function(
               mtry <= ncol(reference))
 
   # remove unassigned cells from reference prior to classification
-  reference <- reference %>%
+  reference <- reference |>
     dplyr::filter(celltype != !!unassigned_name)
 
   # keep track of ids
@@ -109,7 +110,7 @@ classify_cells <- function(
 
 
   if (!is.null(load_model)) {
-    if (class(load_model) == "train") {
+    if (inherits(load_model) == "ranger") {
       rf_model <- load_model
       rm(load_model)
     } else {
@@ -135,11 +136,11 @@ classify_cells <- function(
       dplyr::group_by(celltype) |>
       dplyr::slice_sample(n = subsample)
 
-    model_weights <- reference %>%
-      dplyr::group_by(celltype) %>%
-      dplyr::mutate(weight = nrow(reference) / dplyr::n()) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(weight = weight / sum(weight)) %>%
+    model_weights <- reference |>
+      dplyr::group_by(celltype) |>
+      dplyr::mutate(weight = nrow(reference) / dplyr::n()) |>
+      dplyr::ungroup() |>
+      dplyr::mutate(weight = weight / sum(weight)) |>
       dplyr::filter(id %in% subset$id) |>
       dplyr::pull(weight)
 
@@ -175,7 +176,7 @@ classify_cells <- function(
     }
   }
 
-  pred <- predict(
+  pred <- stats::predict(
     object = rf_model,
     data = query[, markers]
   )
@@ -190,5 +191,5 @@ classify_cells <- function(
   # add model predictions to query
   query <- dplyr::bind_cols(query, "model_prediction" = pred)
 
-  return(query %>% dplyr::arrange(id))
+  return(query |> dplyr::arrange(id))
 }

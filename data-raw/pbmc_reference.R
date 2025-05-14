@@ -108,7 +108,8 @@ pbmc_markers <- pbmc_reference %>%
   colnames()
 
 usethis::use_data(pbmc_markers, overwrite = TRUE)
-
+pbmc_reference <- "pbmc_reference <- getReference('pbmc')"
+usethis::use_data(pbmc_reference, overwrite = TRUE)
 # saveRDS(pbmc_reference, file = "~/mnt/cr2/people/s153398/cytograted/data/seurat_reference_250422.RDS")
 
 

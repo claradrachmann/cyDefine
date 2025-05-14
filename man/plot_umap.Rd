@@ -9,10 +9,11 @@ plot_umap(
   query,
   markers,
   colors = NULL,
+  query_color_col = "predicted_celltype",
   build_umap_on = "both",
   shuffle = TRUE,
   down_sample = TRUE,
-  sample_n = 1e+05,
+  sample_n = 10000,
   return_data = FALSE,
   seed = 332,
   verbose = TRUE

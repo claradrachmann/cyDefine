@@ -5,14 +5,12 @@
 #' available on Zenodo. To prevent repeated downloads, `store` can be set to
 #' `TRUE`. This will create a "scaffolds" folder, where the scaffolds are
 #' stored.
-#' @importFrom zen4R download_zenodo
 #' @importFrom utils data
 #' @param name Name of scaffold to get
 #' @param store Whether or not to store the scaffold for future use
 #' @param path Path to folder for storing scaffolds
 #' @param timeout Setting download timeout
-#' @examples
-#' reference <- getReference("pbmc")
+#' @param verbose Verbosity
 #' @return A spaceRAT scaffold
 #' @export
 getReference <- function(
@@ -94,7 +92,6 @@ getZenodo <- function(name = "pbmc"){
 #'
 #' @param doi The DOI of the Zenodo entry
 #'
-#' @importFrom zen4R get_zenodo
 #' @return A data.frame of scaffolds
 #' @noRd
 #'

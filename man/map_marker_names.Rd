@@ -2,26 +2,27 @@
 % Please edit documentation in R/02_adapt_reference.R
 \name{map_marker_names}
 \alias{map_marker_names}
-\title{Change query marker names to match reference marker names}
+\title{Modify query marker names to match reference marker names}
 \usage{
 map_marker_names(
   query,
-  ref_markers,
   query_markers,
-  using_seurat = TRUE,
+  ref_markers = cyDefine::pbmc_markers,
+  using_pbmc = TRUE,
   map_specific_from = NULL,
   map_specific_to = NULL,
+  return_unrecognized = FALSE,
   verbose = TRUE
 )
 }
 \arguments{
 \item{query}{Tibble of query data (cells in rows, markers in columns)}
 
-\item{ref_markers}{Character vector of reference markers}
-
 \item{query_markers}{Character vector of query markers}
 
-\item{using_seurat}{Boolean indicating whether or not the Seurat PBMC atlas is
+\item{ref_markers}{Character vector of reference markers}
+
+\item{using_pbmc}{Boolean indicating whether or not the Seurat PBMC atlas is
 used as reference}
 
 \item{map_specific_from}{Optional: used together with \code{map_specific_to}.
@@ -32,20 +33,26 @@ specific marker(s) of the reference (given by \code{map_specific_to}).}
 Markers of the reference that the markers given by \code{map_specific_from} should
 be mapped to.}
 
+\item{return_unrecognized}{Boolean specifying whether to return names of
+unrecognized markers.}
+
 \item{verbose}{Verbosity}
 }
 \value{
-Tibble of query data modified to make marker names match reference
-markers
+Tibble of query data modified to make marker names match reference.
+If return_unrecognized is TRUE, returns a list with this tibble and a
+character vector with the unrecognized markers.
 }
 \description{
-Change query marker names to match reference marker names
+Modify query marker names to match reference marker names
 }
 \examples{
 
-map_marker_names(using_seurat = TRUE, query = example_query,
-query_markers = example_markers, map_specific_from = c("CXCR5", "TCRgd"),
-map_specific_to = c("CD185","gdTCR"))
+map_marker_names(
+  using_pbmc = TRUE, query = example_query,
+  query_markers = example_markers, map_specific_from = c("CXCR5", "TCRgd"),
+  map_specific_to = c("CD185", "gdTCR")
+)
 
 }
 \seealso{

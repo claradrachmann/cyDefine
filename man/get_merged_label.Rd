@@ -4,10 +4,15 @@
 \alias{get_merged_label}
 \title{Get label of a merged population}
 \usage{
-get_merged_label(populations, using_seurat = TRUE)
+get_merged_label(populations, using_pbmc = TRUE)
 }
 \arguments{
 \item{populations}{Character vector of individual cell types in merged population}
+
+\item{using_pbmc}{Boolean indicating whether the Seurat PBMC atlas is
+being supplied as reference. This info is needed to enable automated
+screening of common marker names in \code{map_marker_names()} and tree-based
+merging of cell type labels.}
 }
 \value{
 Label of merged population
