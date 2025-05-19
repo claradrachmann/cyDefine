@@ -30,9 +30,6 @@ and reference.}
 \item{seed}{desc}
 
 \item{verbose}{desc}
-
-\item{population_pairs}{Data frame of two character columns with one cell
-type in each, and rows representing all pairs of cell types to be tested.}
 }
 \value{
 A tibble of similar populations
@@ -40,4 +37,8 @@ A tibble of similar populations
 \description{
 Identify indistinguishable cell type populations in the reference, based on
 query marker panel
+}
+\note{
+param population_pairs Data frame of two character columns with one cell
+type in each, and rows representing all pairs of cell types to be tested.
 }

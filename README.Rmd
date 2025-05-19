@@ -54,6 +54,7 @@ Here is a quick run-through of the main functionalities.
 
 ```{r exclude}
 library(cyDefine)
+mtry <- floor(sqrt(length(example_markers))) # Number of features to use for classification
 # Run initial projection to exclude redundant cell types (Optional)
 reference <- excl_redundant_populations(
       reference = example_reference,
@@ -62,7 +63,7 @@ reference <- excl_redundant_populations(
       min_cells = 50,
       min_pct = 0.05,
       num.threads = 4,
-      mtry = floor(length(example_markers)/3),
+      mtry = mtry,
       seed = 332
     )
 ```
@@ -76,7 +77,7 @@ classified_query <- cyDefine(
   query = example_query, 
   markers = example_markers, 
   num.threads = 4,
-  mtry = floor(length(example_markers)/3),
+  mtry = mtry,
   num.trees = 500,
   adapt_reference = TRUE, 
   using_pbmc = FALSE, 
@@ -101,8 +102,7 @@ Additionally, you can create a chart of the merged cell populations during refer
 
 ```{r, fig.height=5, fig.width=12}
 # Diagram of reference adaptation is only relevant if cell populations are merged (if "celltype_original" is created)
-if ("celltype_original" %in% colnames(reference)) 
-  plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
+plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}

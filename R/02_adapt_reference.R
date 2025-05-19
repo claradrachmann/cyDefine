@@ -178,7 +178,7 @@ map_marker_names <- function(
 #' @inheritParams cyDefine
 #' @param populations_to_merge A data frame of clustered populations
 #' @param reference Data frame of reference data (cells in rows, markers in columns)
-#' param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
+#' @note param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
 #' @family adapt
 merge_populations <- function(populations_to_merge,
                               reference,
@@ -221,7 +221,7 @@ merge_populations <- function(populations_to_merge,
 #'
 #' @param populations Character vector of individual cell types in merged population
 #' @inheritParams merge_populations
-#'
+#' @importFrom stats na.omit
 #' @return Label of merged population
 #' @family adapt
 get_merged_label <- function(populations, using_pbmc = TRUE) {
@@ -269,7 +269,7 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
 #'
 #' @inheritParams adapt_reference
 #' @inheritParams ranger::ranger
-#' @param population_pairs Data frame of two character columns with one cell
+#' @note param population_pairs Data frame of two character columns with one cell
 #' type in each, and rows representing all pairs of cell types to be tested.
 #' @param reference desc
 #' @param min_f1 desc
@@ -462,7 +462,7 @@ excl_redundant_populations <- function(reference,
 #' @return Tibble of adapted reference
 #' @export
 #'
-adapt_reference <- function(reference = pbmc_reference,
+adapt_reference <- function(reference,
                             markers,
                             using_pbmc = TRUE,
                             initial_project = FALSE,

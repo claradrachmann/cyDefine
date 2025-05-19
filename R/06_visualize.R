@@ -452,7 +452,11 @@ plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_f
 
   check_package("DiagrammeR")
 
-  if ("data.frame" %in% class(input)) {
+  if (inherits(input, "data.frame")) {
+    if (!"celltype_original" %in% colnames(input)) {
+      message("No populations merged in the adaptation.")
+      return()
+    }
     merge_list <- get_merge_list(input)
   } else if (inherits(input) == "list") {
     merge_list <- input
@@ -587,7 +591,7 @@ get_merge_list <- function(adapted_reference) {
 #'
 #' @return A ggplot object representing the alluvial plot.
 #'
-#'
+#' @importFrom methods is
 #' @importFrom dplyr sample_n
 #' @import ggplot2
 #'

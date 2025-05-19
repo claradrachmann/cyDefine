@@ -20,7 +20,7 @@ Imports:
     cyCombine,
     ranger,
     dplyr, tibble, stringr, tidyr, ggplot2,
-    stats,
+    stats, methods,
     grDevices,
     RColorBrewer,
     igraph,

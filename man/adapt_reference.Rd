@@ -5,7 +5,7 @@
 \title{Adapt Seurat PBMC reference to query marker panel}
 \usage{
 adapt_reference(
-  reference = pbmc_reference,
+  reference,
   markers,
   using_pbmc = TRUE,
   initial_project = FALSE,
