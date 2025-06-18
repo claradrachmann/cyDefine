@@ -45,6 +45,7 @@ cyDefine <- function(
       FALSE),
     min_f1 = 0.7,
     batch_correct = TRUE,
+    ref.batch = NULL,
     xdim = 6, ydim = 6,
     identify_unassigned = TRUE,
     norm_method = ifelse(
@@ -111,6 +112,7 @@ cyDefine <- function(
       xdim = xdim,
       ydim = ydim,
       norm_method = norm_method,
+      ref.batch = ref.batch,
       seed = seed,
       verbose = verbose
       )
