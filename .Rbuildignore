@@ -5,3 +5,5 @@
 tmp
 ^README\.Rmd$
 .git
+data/.*\.rds
+diagram.png

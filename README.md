@@ -20,7 +20,9 @@ Please cite with `citation("cyDefine")`.
 
 ``` r
 # To ensure Rstudio looks up BioConductor packages run:
-setRepositories(ind = c(1:6, 8))
+setRepositories(ind = 1:2)
+# If you are correcting cytometry data, install the following Bioconductor packages:
+BiocManager::install(c("flowCore", "Biobase", "sva"))
 # Install cyCombine dependency
 remotes::install_github("biosurf/cyCombine")
 
@@ -40,44 +42,27 @@ browseVignettes("cyDefine")
 
 Please see the vignettes for a detailed description of usage.
 
-Here is a quick run-through of the main functionalities.
+Here is a quick run-through of the main functionalities using example
+data.<br> A large PBMC reference is also available, see
+`?pbmc_reference`.
 
 ``` r
 library(cyDefine)
-mtry <- floor(sqrt(length(example_markers))) # Number of features to use for classification
-# Run initial projection to exclude redundant cell types (Optional)
-reference <- excl_redundant_populations(
-      reference = example_reference,
-      query = example_query,
-      markers = example_markers,
-      min_cells = 50,
-      min_pct = 0.05,
-      num.threads = 4,
-      mtry = mtry,
-      seed = 332
-    )
-#> Making initial projection to filter out redundant cell types of the reference
-#> Excluding the following redundant celltypes from the reference: 
-#> Basophil
-```
 
-``` r
-
-# Run cyDefine
-classified_query <- cyDefine(
-  reference = reference, 
+# Run the cyDefine pipeline
+classified <- cyDefine(
+  reference = example_reference, 
   query = example_query, 
-  markers = example_markers, 
-  num.threads = 4,
-  mtry = mtry,
-  num.trees = 500,
-  adapt_reference = TRUE, 
-  using_pbmc = FALSE, 
-  batch_correct = TRUE, 
-  xdim = 6, ydim = 6,
-  norm_method = "scale",
-  identify_unassigned = TRUE, 
-  train_on_unassigned = FALSE,
+  markers = example_markers,                   # markers/features to use
+  num.threads = 4,                             # Number of threads for parallelization
+  mtry = floor(length(example_markers)/4),     # Number of markers to use in random forest classification
+  num.trees = 500,                             # Number of trees to build in classification
+  adapt_reference = TRUE,                      # Whether the reference should be adapted to the markers available in the query
+  using_pbmc = FALSE,                          # Whether the PBMC reference is used
+  batch_correct = TRUE,                        # Whether to integrate the reference and query using cyCombine (see ?cyCombine::batch_correct for more options)
+  xdim = 6, ydim = 6,                          # Clustering dimensions for the integration
+  identify_unassigned = TRUE,                  # Whether unassignable cells should be identified
+  train_on_unassigned = FALSE,                 # Whether unassigned cells should be identified unsupervised or using unassigned cells in the reference
   seed = 332,
   verbose = TRUE
   )
@@ -85,8 +70,8 @@ classified_query <- cyDefine(
 #> markers, : Overlapping sample ID(s) found between reference and query. Assuming
 #> that these represent different samples. Adding '_ref' and '_query',
 #> respectively, to the end of overlapping sample ID(s)
-reference <- classified_query$reference
-classified_query <- classified_query$query
+reference <- classified$reference
+classified_query <- classified$query
 ```
 
 ## Visualizations
@@ -96,11 +81,11 @@ cell type abundance, and marker expression. Additionally, you can create
 a chart of the merged cell populations during reference adaptation.
 
 ``` r
-# Diagram of reference adaptation is only relevant if cell populations are merged (if "celltype_original" is created)
+# Diagram of reference adaptation is only relevant if cell populations are merged (i.e., if "celltype_original" is created)
 plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
-#> No populations merged in the adaptation.
-#> NULL
 ```
+
+    #> No populations merged in the adaptation.
 
 ``` r
 
@@ -116,7 +101,7 @@ plot_umap(reference,
           colors = celltype_colors)
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
+![](man/figures/README-umap-1.png)<!-- -->
 
 ``` r
 # Barplot of cell type abundances in query
@@ -124,7 +109,7 @@ plot_abundance(predicted_populations = classified_query$predicted_celltype,
                colors = celltype_colors)
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
+![](man/figures/README-abundance-1.png)<!-- -->
 
 ``` r
 # Heatmap of marker expressions per cell type in query
@@ -133,7 +118,7 @@ plot_heatmap(classified_query,
              markers_to_plot = example_markers)
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
+![](man/figures/README-heatmap-1.png)<!-- -->
 
 ## Report issues
 

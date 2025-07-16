@@ -83,14 +83,14 @@ MAD_max_distance <- function(distances, MAD_factor = 3) {
 #' cells of the query are assumed to be representative of those found in the reference.
 #' @param pct_expl_var The percentage threshold of explained variance for PC selection
 #' @param MAD_factor Median average distance threshold of the outlier to its assigned population
-#'
+#' @importFrom pbmcapply pbmclapply
 #' @return A tibble of unassigned cells
 #' @export
 #'
 identify_unassigned <- function(reference,
                                 query,
                                 markers,
-                                num.threads = 4,
+                                num.threads = 1,
                                 mtry = 22,
                                 train_on_unassigned = TRUE,
                                 unassigned_name = "unassigned",
@@ -102,9 +102,7 @@ identify_unassigned <- function(reference,
   check_colnames(colnames(query), c("model_prediction", markers))
 
   # keep track of ids
-  if ("id" %!in% colnames(query)) {
-    query$id <- 1:nrow(query)
-  }
+  query <- check_id(query)
 
   # if (verbose) {message("Identifying unassigned cells using ", n_components,
   #                       " principal components and MAD-factor ", MAD_factor)}
@@ -117,23 +115,22 @@ identify_unassigned <- function(reference,
       nrow()
 
     if (n_unassigned < 20) {
-      stop(
+      warning(
         "Too few cells labeled '", unassigned_name, "' are present in the reference (",
         n_unassigned, ") to train on these cells. ",
-        "Please use modify the 'unassigned_name' or use the unsupervised analysis type."
+        "Please modify the 'unassigned_name' or use the unsupervised analysis type.",
+        "Skipping identification. Rerun with `identify_unassigned()`."
       )
+      return(query)
     }
 
     if (verbose) {
       message("Identifying unassigned cells per predicted cell type")
     }
-    op <- pbapply::pboptions(type = "timer", char = "=")
-    preds <- pbapply::pbsapply(
+    preds <- pbmcapply::pbmclapply(mc.cores = 1,
       unique(query$model_prediction),
       function(popu) {
-        if (verbose) {
-          message("Filtering unassigned cells from ", popu)
-        }
+        # if (verbose) message("Filtering unassigned cells from ", popu)
 
         # cell type specific query and reference
         celltype_query <- dplyr::filter(
@@ -183,12 +180,7 @@ identify_unassigned <- function(reference,
         ))
       }
     )
-
-    preds <- dplyr::as_tibble(t(preds)) |>
-      tidyr::unnest(c(
-        id,
-        predicted_celltype
-      ))
+    preds <- do.call(rbind, preds)
 
     query <- dplyr::left_join(query,
       preds,
@@ -198,8 +190,7 @@ identify_unassigned <- function(reference,
     if (verbose) {
       message("Identifying unassigned cells per predicted cell type")
     }
-    op <- pbapply::pboptions(type = "timer", char = "=")
-    distances <- pbapply::pbsapply(
+    distances <- pbmcapply::pbmclapply(mc.cores = num.threads,
       unique(query$model_prediction),
       function(popu) {
         # cell type specific query and reference
@@ -234,8 +225,7 @@ identify_unassigned <- function(reference,
 
         # compute cell type specific PCA
         pca_embed <- stats::prcomp(
-          x = celltype_all |>
-            dplyr::select(dplyr::all_of(markers)),
+          x = celltype_all[, markers],
           retx = TRUE,
           center = TRUE,
           scale. = TRUE
@@ -281,13 +271,7 @@ identify_unassigned <- function(reference,
         ))
       }
     )
-
-    distances <- dplyr::as_tibble(t(distances)) |>
-      tidyr::unnest(c(
-        id,
-        max_distance,
-        distance
-      ))
+    distances <- do.call(rbind, distances)
 
     query <- dplyr::left_join(query,
       distances,
@@ -299,9 +283,8 @@ identify_unassigned <- function(reference,
       dplyr::mutate(predicted_celltype = ifelse(distance > max_distance,
         "unassigned",
         as.character(model_prediction)
-      )) |>
-      dplyr::arrange(id)
+      ))
   }
 
-  return(query)
+  return(dplyr::arrange(query, id))
 }

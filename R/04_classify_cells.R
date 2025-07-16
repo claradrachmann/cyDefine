@@ -32,6 +32,7 @@ compute_f1 <- function(y_pred, y_test) {
 }
 
 #' Create confusion matrix
+#' @importFrom dplyr rename
 #' @noRd
 create_confusion_matrix <- function(y_pred, y_test) {
   table(y_pred, y_test) |>
@@ -64,6 +65,7 @@ macroF1_summary <- function(data) {
 #' @param markers Character vector of available markers
 #' @param subsample Number of cells to use for training from each cell type
 #' @param unassigned_name Name used for unassigned cells
+#' @param use.weights (Default: FALSE) Boolean whether to use celltype frequency as class weights
 #' @param load_model Optional: Path to an rda file of a previously trained model
 #' @param save_model Optional: Path to save an rda file of the trained model
 #' @param return_pred Boolean indicating if only predictions should be returned as a character vector
@@ -78,15 +80,16 @@ classify_cells <- function(
     reference,
     query,
     markers,
-    subsample = 1000,
+    subsample = 2000,
     mtry = 22,
     min.node.size = 1,
     splitrule = "gini",
     num.trees = 300,
+    use.weights = FALSE,
     unassigned_name = "unassigned",
     load_model = NULL,
     save_model = NULL,
-    num.threads = 4,
+    num.threads = 1,
     return_pred = FALSE,
     seed = 332,
     verbose = TRUE) {
@@ -114,9 +117,7 @@ classify_cells <- function(
       rf_model <- load_model
       rm(load_model)
     } else {
-      if (verbose) {
-        message("Loading saved model: ", load_model)
-      }
+      if (verbose) message("Loading saved model: ", load_model)
       if (endsWith(toupper(load_model), "RDS")) {
         rf_model <- readRDS(load_model)
       } else if (endsWith(toupper(load_model), "RDA")) {
@@ -136,13 +137,18 @@ classify_cells <- function(
       dplyr::group_by(celltype) |>
       dplyr::slice_sample(n = subsample)
 
-    model_weights <- reference |>
-      dplyr::group_by(celltype) |>
-      dplyr::mutate(weight = nrow(reference) / dplyr::n()) |>
-      dplyr::ungroup() |>
-      dplyr::mutate(weight = weight / sum(weight)) |>
-      dplyr::filter(id %in% subset$id) |>
-      dplyr::pull(weight)
+    if (use.weights) {
+      model_weights <- reference |>
+        dplyr::group_by(celltype) |>
+        dplyr::reframe(weight = dplyr::n() / nrow(reference)) |>
+        dplyr::pull(weight)
+        # dplyr::mutate(weight = nrow(reference) / dplyr::n()) |>
+        # dplyr::ungroup() |>
+        # dplyr::mutate(weight = weight / sum(weight)) |>
+        # dplyr::filter(id %in% subset$id) |>
+        # dplyr::pull(weight)
+    } else {model_weights <- NULL}
+
 
     t <- system.time({
     # Set up your ranger model
@@ -157,8 +163,8 @@ classify_cells <- function(
       min.node.size = min.node.size,           # Minimum node size
       replace = TRUE,                          # Sampling with replacement
       sample.fraction = 1,                     # Fraction of observations to sample (1 for replacement)
-      # case.weights = model_weights,            # Weights for cases
-      # class.weights = class.weights,
+      # case.weights = model_weights,
+      class.weights = model_weights,           # Celltype weights
       splitrule = splitrule,                   # Splitting rule
       num.threads = num.threads,               # Number of threads to use
       seed = seed,                             # Seed for reproducibility
@@ -189,7 +195,8 @@ classify_cells <- function(
   }
 
   # add model predictions to query
-  query <- dplyr::bind_cols(query, "model_prediction" = pred)
+  query <- dplyr::bind_cols(query, "model_prediction" = pred) |>
+    dplyr::arrange(id)
 
-  return(query |> dplyr::arrange(id))
+  return(query)
 }

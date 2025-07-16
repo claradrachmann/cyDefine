@@ -2,6 +2,7 @@ library(tidyverse)
 library(Seurat)
 library(SeuratDisk)
 library(ggplot2)
+library(cyCombine)
 
 # The Seurat PBMC reference is obtained from https://atlas.fredhutch.org/nygc/multimodal-pbmc/
 system("wget -o ../data/ https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat")
@@ -17,8 +18,6 @@ seu_reference <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat", #"/home/projec
 system("rm pbmc_multimodal.h5seurat")
 
 # --------------- cyCombine ---------------
-
-devtools::load_all("../cyCombine/")
 
 SeuratObject::DefaultAssay(seu_reference) <- "ADT"
 # seu_obj <- FindVariableFeatures(seu_obj, selection.method = "vst")
@@ -108,7 +107,7 @@ pbmc_markers <- pbmc_reference %>%
   colnames()
 
 usethis::use_data(pbmc_markers, overwrite = TRUE)
-pbmc_reference <- "pbmc_reference <- getReference('pbmc')"
+pbmc_reference <- "pbmc_reference <- get_reference('pbmc')"
 usethis::use_data(pbmc_reference, overwrite = TRUE)
 # saveRDS(pbmc_reference, file = "~/mnt/cr2/people/s153398/cytograted/data/seurat_reference_250422.RDS")
 

@@ -8,3 +8,5 @@ doc/
 *.html
 vignettes/*.R
 tmp
+data/*.rds
+diagram.png

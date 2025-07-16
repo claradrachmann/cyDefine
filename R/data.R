@@ -7,6 +7,10 @@
 
 #' The modified Seurat PBMC atlas
 #'
+#' Load the modified PBMC reference with
+#' `pbmc_reference <- get_reference("pbmc")`
+#' See `?get_reference` for options to store the reference locally for subsequent faster load times.
+#'
 #' @format A tibble of 161,764 rows and 244 variables
 #' @source \url{https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat}
 #'

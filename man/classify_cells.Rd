@@ -8,15 +8,16 @@ classify_cells(
   reference,
   query,
   markers,
-  subsample = 1000,
+  subsample = 2000,
   mtry = 22,
   min.node.size = 1,
   splitrule = "gini",
   num.trees = 300,
+  use.weights = FALSE,
   unassigned_name = "unassigned",
   load_model = NULL,
   save_model = NULL,
-  num.threads = 4,
+  num.threads = 1,
   return_pred = FALSE,
   seed = 332,
   verbose = TRUE
@@ -40,6 +41,8 @@ For regression "variance", "extratrees", "maxstat", "beta" or "poisson" with def
 For survival "logrank", "extratrees", "C" or "maxstat" with default "logrank".}
 
 \item{num.trees}{Number of trees.}
+
+\item{use.weights}{(Default: FALSE) Boolean whether to use celltype frequency as class weights}
 
 \item{unassigned_name}{Name used for unassigned cells}
 

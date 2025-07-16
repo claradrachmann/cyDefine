@@ -24,15 +24,15 @@ Imports:
     grDevices,
     RColorBrewer,
     igraph,
-    pheatmap,
-    pbapply
+    pbmcapply,
+    matrixcalc
 Suggests: 
-    ggalluvial,
+    ggalluvial, pheatmap,
     Rfast,
+    reshape2,
     flowCore,
     DiagrammeR,
     knitr,
-    matrixcalc,
     rmarkdown,
     testthat (>= 3.0.0),
     uwot,

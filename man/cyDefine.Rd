@@ -12,6 +12,7 @@ cyDefine(
   adapt_reference = ifelse(using_pbmc, TRUE, FALSE),
   min_f1 = 0.7,
   batch_correct = TRUE,
+  ref.batch = NULL,
   xdim = 6,
   ydim = 6,
   identify_unassigned = TRUE,
@@ -21,14 +22,17 @@ cyDefine(
   save_model = NULL,
   mtry = 22,
   splitrule = "gini",
+  use.weights = FALSE,
   min.node.size = 1,
   num.trees = 300,
-  num.threads = 4,
+  num.threads = 1,
+  mc.cores = NULL,
   save_adapted_reference = NULL,
   unassigned_name = "unassigned",
   train_on_unassigned = ifelse(using_pbmc, FALSE, TRUE),
   seed = 332,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -55,6 +59,8 @@ should be adapted to match the query marker panel. Default: FALSE if
 \item{batch_correct}{Boolean indicating whether or not you want to perform
 batch correction via cyCombine}
 
+\item{ref.batch}{Optional. A string of the batch that should be used as the reference for batch adjustments.}
+
 \item{xdim}{The x-dimension size of the SOM.}
 
 \item{ydim}{The y-dimension size of the SOM.}
@@ -78,11 +84,15 @@ If NULL, no covar will be used}
 For regression "variance", "extratrees", "maxstat", "beta" or "poisson" with default "variance".
 For survival "logrank", "extratrees", "C" or "maxstat" with default "logrank".}
 
+\item{use.weights}{(Default: FALSE) Boolean whether to use celltype frequency as class weights}
+
 \item{min.node.size}{Minimal node size to split at. Default 1 for classification, 5 for regression, 3 for survival, and 10 for probability. For classification, this can be a vector of class-specific values.}
 
 \item{num.trees}{Number of trees.}
 
 \item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
+
+\item{mc.cores}{Number of cores for parallelization}
 
 \item{save_adapted_reference}{Default: NULL. Save the adapted reference in a
 specified object name or as "adapted_reference.rds" in a specified path.
@@ -99,6 +109,9 @@ cells of the query are assumed to be representative of those found in the refere
 \item{seed}{desc}
 
 \item{verbose}{Verbosity}
+
+\item{...}{Additional optional parameters for batch correction.
+See \code{?cyCombine::batch_correct} for options.}
 }
 \value{
 Tibble of query data with added columns: "model_prediction"

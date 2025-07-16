@@ -4,12 +4,11 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
+```{r options, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
+  fig.path = "man/figures/README-"
 )
 ```
 
@@ -28,9 +27,11 @@ Please cite with `citation("cyDefine")`.
 
 ## Install from GitHub
 
-``` {r, eval = FALSE}
+``` {r install, eval = FALSE}
 # To ensure Rstudio looks up BioConductor packages run:
-setRepositories(ind = c(1:6, 8))
+setRepositories(ind = 1:2)
+# If you are correcting cytometry data, install the following Bioconductor packages:
+BiocManager::install(c("flowCore", "Biobase", "sva"))
 # Install cyCombine dependency
 remotes::install_github("biosurf/cyCombine")
 
@@ -50,47 +51,31 @@ browseVignettes("cyDefine")
 
 Please see the vignettes for a detailed description of usage.
 
-Here is a quick run-through of the main functionalities.
-
-```{r exclude}
-library(cyDefine)
-mtry <- floor(sqrt(length(example_markers))) # Number of features to use for classification
-# Run initial projection to exclude redundant cell types (Optional)
-reference <- excl_redundant_populations(
-      reference = example_reference,
-      query = example_query,
-      markers = example_markers,
-      min_cells = 50,
-      min_pct = 0.05,
-      num.threads = 4,
-      mtry = mtry,
-      seed = 332
-    )
-```
-
+Here is a quick run-through of the main functionalities using example data.<br>
+A large PBMC reference is also available, see `?pbmc_reference`.
 
 ```{r cyDefine, message=FALSE}
+library(cyDefine)
 
-# Run cyDefine
-classified_query <- cyDefine(
-  reference = reference, 
+# Run the cyDefine pipeline
+classified <- cyDefine(
+  reference = example_reference, 
   query = example_query, 
-  markers = example_markers, 
-  num.threads = 4,
-  mtry = mtry,
-  num.trees = 500,
-  adapt_reference = TRUE, 
-  using_pbmc = FALSE, 
-  batch_correct = TRUE, 
-  xdim = 6, ydim = 6,
-  norm_method = "scale",
-  identify_unassigned = TRUE, 
-  train_on_unassigned = FALSE,
+  markers = example_markers,                   # markers/features to use
+  num.threads = 4,                             # Number of threads for parallelization
+  mtry = floor(length(example_markers)/4),     # Number of markers to use in random forest classification
+  num.trees = 500,                             # Number of trees to build in classification
+  adapt_reference = TRUE,                      # Whether the reference should be adapted to the markers available in the query
+  using_pbmc = FALSE,                          # Whether the PBMC reference is used
+  batch_correct = TRUE,                        # Whether to integrate the reference and query using cyCombine (see ?cyCombine::batch_correct for more options)
+  xdim = 6, ydim = 6,                          # Clustering dimensions for the integration
+  identify_unassigned = TRUE,                  # Whether unassignable cells should be identified
+  train_on_unassigned = FALSE,                 # Whether unassigned cells should be identified unsupervised or using unassigned cells in the reference
   seed = 332,
   verbose = TRUE
   )
-reference <- classified_query$reference
-classified_query <- classified_query$query
+reference <- classified$reference
+classified_query <- classified$query
 
 
 ```
@@ -100,12 +85,20 @@ classified_query <- classified_query$query
 cyDefine provides functionality for visualizing your results by UMAP, cell type abundance, and marker expression.
 Additionally, you can create a chart of the merged cell populations during reference adaptation.
 
-```{r, fig.height=5, fig.width=12}
-# Diagram of reference adaptation is only relevant if cell populations are merged (if "celltype_original" is created)
+```{r diagram, eval=FALSE}
+# Diagram of reference adaptation is only relevant if cell populations are merged (i.e., if "celltype_original" is created)
 plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
 ```
+```{r show_diagram, echo=FALSE, fig.height=2.5, fig.width=6}
+# Diagram of reference adaptation is only relevant if cell populations are merged (i.e., if "celltype_original" is created)
+diagram <- plot_diagram(reference)
+if (!is.null(diagram)) {
+  vtree::grVizToPNG(diagram, width = 1200, height = 500)
+  knitr::include_graphics("diagram.png")
+}
+```
 
-```{r, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}
+```{r umap, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}
 
 # Define a color per cell type + black for unassigned
 celltype_colors <- get_distinct_colors(unique(reference$celltype), 
@@ -120,14 +113,14 @@ plot_umap(reference,
 ```
 
 
-```{r, message=FALSE, warning=FALSE, fig.height = 7, fig.width = 13}
+```{r abundance, message=FALSE, warning=FALSE, fig.height = 7, fig.width = 13}
 # Barplot of cell type abundances in query
 plot_abundance(predicted_populations = classified_query$predicted_celltype,
                colors = celltype_colors)
 ```
 
 
-```{r, message=FALSE, warning=FALSE, fig.height = 10, fig.width = 10}
+```{r heatmap, message=FALSE, warning=FALSE, fig.height = 10, fig.width = 10}
 # Heatmap of marker expressions per cell type in query
 plot_heatmap(classified_query, 
              population_col = "predicted_celltype",

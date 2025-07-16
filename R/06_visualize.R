@@ -128,15 +128,13 @@ plot_umap <- function(reference,
 
   if (build_umap_on == "both") {
     if (verbose) {
-      "Computing UMAP embedding of all cells of reference and query"
+      message("Computing UMAP embedding of all cells of reference and query")
     }
 
     # UMAP embedding of both reference and query
     full_umap <- dplyr::bind_rows(
-      reference |>
-        dplyr::select(dplyr::all_of(markers)),
-      query |>
-        dplyr::select(dplyr::all_of(markers))
+      reference[, markers],
+      query[, markers]
     ) |>
       uwot::umap(
         n_neighbors = 15,
@@ -149,12 +147,13 @@ plot_umap <- function(reference,
     query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
   } else if (build_umap_on == "reference") {
     if (verbose) {
-      "Computing UMAP embedding only of reference cells. Be aware that this can hide potential novel populations in query!"
+      message(
+        "Computing UMAP embedding only of reference cells. ",
+        "Be aware that this can hide potential novel populations in query!")
     }
 
     # UMAP embedding of reference
-    ref_umap_embed <- reference |>
-      dplyr::select(dplyr::all_of(markers)) |>
+    ref_umap_embed <- reference[, markers] |>
       uwot::umap(
         n_neighbors = 15,
         min_dist = 0.2,
@@ -165,7 +164,7 @@ plot_umap <- function(reference,
     ref_umap <- ref_umap_embed$embedding
 
     if (verbose) {
-      "Projecting query cells onto reference UMAP embedding"
+      message("Projecting query cells onto reference UMAP embedding")
     }
 
     # projection of new data
@@ -448,7 +447,7 @@ plot_heatmap <- function(data,
 #' @seealso `adapt_reference()`, `get_merge_list()`
 #'
 #' @export
-plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_fontcolor = "black") {
+plot_diagram <- function(input, colors = NULL, fontcolor_nodes = c("unassigned" = "white"), default_fontcolor = "black") {
 
   check_package("DiagrammeR")
 
@@ -496,8 +495,12 @@ plot_diagram <- function(input, colors = NULL, fontcolor_nodes = NULL, default_f
     merged_nodes <- merge_list[[merge_into]]
 
     # Set the font color based on the input vector or default
-    fontcolor <- ifelse(merge_into %in% names(fontcolor_nodes),
-                        fontcolor_nodes[merge_into], default_fontcolor)
+    if (merge_into %in% names(fontcolor_nodes)) {
+      fontcolor <- fontcolor_nodes[merge_into]
+    } else if (colors[merge_into] %in% colors[names(fontcolor_nodes)]) {
+      inherit_font <- colors[names(fontcolor_nodes)][colors[merge_into] == colors[names(fontcolor_nodes)]]
+      fontcolor <- fontcolor_nodes[names(inherit_font)]
+    } else {fontcolor <- default_fontcolor}
 
     # Create a unique identifier for the merge_into node
     merge_into_unique <- get_unique_node_name(merge_into)

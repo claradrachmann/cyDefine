@@ -16,7 +16,10 @@ batch_correct(
   xdim = 8,
   ydim = 8,
   rlen = 10,
-  verbose = TRUE
+  mc.cores = NULL,
+  num.threads = 1,
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -43,7 +46,14 @@ If NULL, no covar will be used}
 
 \item{rlen}{Number of times the data is presented to the SOM network}
 
+\item{mc.cores}{Number of cores for parallelization}
+
+\item{num.threads}{Number of threads to parallelize with}
+
 \item{verbose}{Verbosity}
+
+\item{...}{Additional optional parameters for batch correction.
+See \code{?cyCombine::batch_correct} for options.}
 }
 \value{
 Named list of tibbles of batch corrected reference and query data

@@ -14,6 +14,8 @@ A tibble of 161,764 rows and 244 variables
 pbmc_reference
 }
 \description{
-The modified Seurat PBMC atlas
+Load the modified PBMC reference with
+\code{pbmc_reference <- get_reference("pbmc")}
+See \code{?get_reference} for options to store the reference locally for subsequent faster load times.
 }
 \keyword{datasets}

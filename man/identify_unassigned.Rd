@@ -8,7 +8,7 @@ identify_unassigned(
   reference,
   query,
   markers,
-  num.threads = 4,
+  num.threads = 1,
   mtry = 22,
   train_on_unassigned = TRUE,
   unassigned_name = "unassigned",

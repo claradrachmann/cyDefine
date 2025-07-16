@@ -7,7 +7,7 @@
 plot_diagram(
   input,
   colors = NULL,
-  fontcolor_nodes = NULL,
+  fontcolor_nodes = c(unassigned = "white"),
   default_fontcolor = "black"
 )
 }

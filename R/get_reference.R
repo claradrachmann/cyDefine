@@ -13,7 +13,7 @@
 #' @param verbose Verbosity
 #' @return A spaceRAT scaffold
 #' @export
-getReference <- function(
+get_reference <- function(
     name = "pbmc",
     store = FALSE,
     path = "data",
@@ -22,7 +22,7 @@ getReference <- function(
 
   check_package("zen4R")
   # Extract zenodo location
-  zenodo <- getZenodo(tolower(name))
+  zenodo <- get_zenodo(tolower(name))
 
   if (verbose) message("Retrieving reference..")
 
@@ -49,7 +49,10 @@ getReference <- function(
     timeout = timeout)
 
   reference <- readRDS(file.path(path, zenodo$filename))
-  if(!store) system2(c("rm", file.path(path, zenodo$filename))); message("Reference deleted.")
+  if(!store) {
+    system2(c("rm", file.path(path, zenodo$filename)))
+    message("Reference deleted.")
+    }
   return(reference)
 }
 
@@ -62,9 +65,9 @@ getReference <- function(
 #'
 #' @return A data.frame with Zenodo location of scaffold
 #' @noRd
-getZenodo <- function(name = "pbmc"){
+get_zenodo <- function(name = "pbmc"){
   # Get info of scaffolds
-  allReferences <- getAllReferences()
+  allReferences <- get_all_references()
 
   if(length(name) > 1) stop(
     "Only one reference can be requested at a time. ",
@@ -96,8 +99,8 @@ getZenodo <- function(name = "pbmc"){
 #' @noRd
 #'
 #' @examples
-#' allReferences <- getAllReferences()
-getAllReferences <- function(doi = "10.5281/zenodo.15394344"){
+#' all_references <- get_all_references()
+get_all_references <- function(doi = "10.5281/zenodo.15394344"){
   zen <- suppressMessages(zen4R::get_zenodo(doi))
   allReferences <- do.call(rbind, lapply(zen$files, function(x) {
     data.frame(

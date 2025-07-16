@@ -17,6 +17,8 @@
 #' being supplied as reference. This info is needed to enable automated
 #' screening of common marker names in `map_marker_names()` and tree-based
 #' merging of cell type labels.
+#' @param exclude_redundant Exclude celltypes in the reference that are not
+#' present in the query.
 #'
 #' @param adapt_reference Boolean indicating whether the provided reference
 #' should be adapted to match the query marker panel. Default: FALSE if
@@ -57,23 +59,30 @@ cyDefine <- function(
     save_model = NULL,
     mtry = 22,
     splitrule = "gini",
+    use.weights = FALSE,
     min.node.size = 1,
     num.trees = 300,
-    num.threads = 4,
+    num.threads = 1,
+    mc.cores = NULL,
     save_adapted_reference = NULL,
+    exclude_redundant = FALSE,
     unassigned_name = "unassigned",
     train_on_unassigned = ifelse(
       using_pbmc,
       FALSE,
       TRUE),
     seed = 332,
-    verbose = TRUE) {
+    verbose = TRUE,
+    ...) {
 
   if (inherits(reference, "character")) {
     if (reference == "pbmc" | reference == "pbmc_reference") {
-      reference <- getReference("pbmc", verbose = verbose)
+      reference <- get_reference("pbmc", verbose = verbose)
     }
   }
+  # Use mc.cores if given (for compatibility with cyCombine)
+  if (!is.null(mc.cores)) num.threads <- mc.cores
+
 
   if (adapt_reference) {
 
@@ -103,7 +112,6 @@ cyDefine <- function(
   }
 
   if (batch_correct) {
-
     # Batch correction via cyCombine
     corrected <- batch_correct(
       reference = reference,
@@ -114,10 +122,28 @@ cyDefine <- function(
       norm_method = norm_method,
       ref.batch = ref.batch,
       seed = seed,
-      verbose = verbose
+      verbose = verbose,
+      num.threads = num.threads,
+      ...
       )
     reference <- corrected$reference
     query <- corrected$query
+
+  }
+
+  # Optionally exclude redundant cells in the reference
+  if (exclude_redundant) {
+    reference <- excl_redundant_populations(
+      reference = reference,
+      query = query,
+      markers = markers,
+      min_cells = 50,
+      min_pct = 0.05,
+      num.threads = num.threads,
+      mtry = mtry,
+      seed = seed,
+      verbose = verbose
+    )
 
   }
 
@@ -133,6 +159,7 @@ cyDefine <- function(
     splitrule = splitrule,
     min.node.size = min.node.size,
     num.trees = num.trees,
+    use.weights = use.weights,
     num.threads = num.threads,
     seed = seed,
     verbose = verbose

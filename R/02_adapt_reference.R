@@ -180,10 +180,12 @@ map_marker_names <- function(
 #' @param reference Data frame of reference data (cells in rows, markers in columns)
 #' @note param name_unassigned_if_merged Cell types of the labeling tree, where if merged, the merged population should rather be named 'unassigned'
 #' @family adapt
-merge_populations <- function(populations_to_merge,
-                              reference,
-                              # name_unassigned_if_merged = "unassigned",
-                              using_pbmc = TRUE) {
+merge_populations <- function(
+    populations_to_merge,
+    reference,
+    # name_unassigned_if_merged = "unassigned",
+    using_pbmc = TRUE
+    ) {
   # get labels of clusters of merged populations
   populations_to_merge <- populations_to_merge |>
     dplyr::group_by(cluster) |>
@@ -280,13 +282,15 @@ get_merged_label <- function(populations, using_pbmc = TRUE) {
 #'
 #' @return A tibble of similar populations
 #'
-identify_similar_populations <- function(reference,
-                                         markers,
-                                         num.threads = 4,
-                                         mtry = 4,
-                                         min_f1 = 0.7,
-                                         seed = 332,
-                                         verbose = TRUE) {
+identify_similar_populations <- function(
+    reference,
+    markers,
+    num.threads = 4,
+    mtry = 4,
+    min_f1 = 0.7,
+    seed = 332,
+    verbose = TRUE
+    ) {
   check_colnames(colnames(reference), c(markers, "celltype"))
 
   # check number of cells of each cell type
@@ -353,7 +357,7 @@ identify_similar_populations <- function(reference,
         observed != predicted
       ) |>
       dplyr::group_by(observed) |>
-      dplyr::summarise(predicted = predicted[n == max(n)])
+      dplyr::reframe(predicted = predicted[n == max(n)])
 
     population_clusters <- igraph::components(
       igraph::graph_from_data_frame(similar_population_pairs)
@@ -377,20 +381,22 @@ identify_similar_populations <- function(reference,
 #'
 #' @param min_cells An integer specifying the minimum number of cells for a cell type to be retained. Default is 50.
 #' @param min_pct A numeric value specifying the minimum percentage of cells for a cell type to be retained. Default is 0.001.
-#' @param query Tibble of query data (cells in rows, markers in columns)
 #' @inheritParams adapt_reference
+#' @inheritParams classify_cells
 #' @return A data frame containing the filtered reference dataset with redundant cell types excluded.
 #' @export
 #'
-excl_redundant_populations <- function(reference,
-                                       query,
-                                       markers,
-                                       num.threads = 4,
-                                       mtry = 22,
-                                       min_cells = 50,
-                                       min_pct = 0.001,
-                                       seed = 332,
-                                       verbose = TRUE) {
+excl_redundant_populations <- function(
+    reference,
+    query,
+    markers,
+    num.threads = 4,
+    mtry = 22,
+    min_cells = 50,
+    min_pct = 0.001,
+    seed = 332,
+    verbose = TRUE
+    ) {
 
   if (verbose) {
     message("Making initial projection to filter out redundant cell types of the reference")
@@ -462,25 +468,28 @@ excl_redundant_populations <- function(reference,
 #' @return Tibble of adapted reference
 #' @export
 #'
-adapt_reference <- function(reference,
-                            markers,
-                            using_pbmc = TRUE,
-                            initial_project = FALSE,
-                            exclude_celltypes = c(
-                              "Doublet",
-                              "Platelet",
-                              "Eryth",
-                              "HSPC"
-                            ),
-                            celltype_col = ifelse(using_pbmc,
-                              "celltype.l2",
-                              "celltype"
-                            ),
-                            min_f1 = 0.7,
-                            seed = 332,
-                            num.threads = 4,
-                            mtry = 22,
-                            verbose = TRUE) {
+adapt_reference <- function(
+    reference,
+    markers,
+    using_pbmc = TRUE,
+    initial_project = FALSE,
+    exclude_celltypes = c(
+      "Doublet",
+      "Platelet",
+      "Eryth",
+      "HSPC"
+      ),
+    celltype_col = ifelse(
+      using_pbmc,
+      "celltype.l2",
+      "celltype"
+      ),
+    min_f1 = 0.7,
+    seed = 332,
+    num.threads = 4,
+    mtry = 22,
+    verbose = TRUE
+    ) {
   # remove excluded cell types
   names(reference)[names(reference) == celltype_col] <- "celltype"
   reference <- reference[reference$celltype %!in% exclude_celltypes, ]
@@ -507,9 +516,7 @@ adapt_reference <- function(reference,
 
     # merge groups of similar populations
     if (nrow(similar_populations) > 0) {
-      if (verbose) {
-        message("Merging groups of similar populations")
-      }
+      if (verbose) message("Merging groups of similar populations")
 
       reference <- merge_populations(
         populations_to_merge = similar_populations,

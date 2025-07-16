@@ -3,8 +3,11 @@
 #' @param reference Tibble of reference data (cells in rows, markers in columns)
 #' @param query Tibble of query data (cells in rows, markers in columns)
 #' @param markers Character vector of available markers
+#' @param num.threads Number of threads to parallelize with
 #' @inheritParams cyCombine::batch_correct
 #' @param verbose Verbosity
+#' @param ... Additional optional parameters for batch correction.
+#'  See `?cyCombine::batch_correct` for options.
 #'
 #' @return Named list of tibbles of batch corrected reference and query data
 #' @export
@@ -21,11 +24,15 @@ batch_correct <- function(
     xdim = 8,
     ydim = 8,
     rlen = 10,
-    verbose = TRUE) {
+    mc.cores = NULL,
+    num.threads = 1,
+    verbose = TRUE,
+    ...) {
   check_colnames(colnames(reference), c("celltype", markers))
   check_colnames(colnames(query), c(markers))
 
-
+  # Use mc.cores if given (for compatibility with cyCombine)
+  if (!is.null(mc.cores)) num.threads <- mc.cores
   # add batch and sample columns if not provided
   if ("sample" %!in% colnames(reference)) {
     if (verbose) {
@@ -103,7 +110,7 @@ batch_correct <- function(
       colnames(query)
     )
   )
-  uncorrected$id <- 1:nrow(uncorrected)
+  uncorrected <- check_id(uncorrected)
 
   # run batch correction
   corrected <- cyCombine::batch_correct(
@@ -116,7 +123,9 @@ batch_correct <- function(
     norm_method = norm_method,
     covar = covar,
     rlen = rlen,
-    seed = seed
+    seed = seed,
+    mc.cores = num.threads,
+    ...
   )
 
   rm(uncorrected)
