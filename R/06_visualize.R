@@ -33,6 +33,9 @@ get_distinct_colors <- function(populations, add_unassigned = TRUE) {
   return(colors)
 }
 
+#' Expand colors to new/merged labels
+#' 
+#' @noRd
 expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors = NULL) {
 
   unique_celltypes <- sort(unique(adapted_celltypes))
@@ -79,72 +82,102 @@ expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors =
 #' @export
 #'
 plot_umap <- function(reference,
-                      query,
-                      markers,
+                      query = NULL,
+                      markers = NULL,
                       colors = NULL,
                       query_color_col = "predicted_celltype",
-                      build_umap_on = "both",
+                      build_umap_on = c("both", "reference"),
+                      metric = "euclidean",
                       shuffle = TRUE,
                       down_sample = TRUE,
                       sample_n = 10000,
                       return_data = FALSE,
                       seed = 332,
-                      verbose = TRUE) {
+                      verbose = TRUE,
+                      title = c("Reference", "Query - predicted cell types"),
+                      col = c("celltype", "batch"),
+                      add_centroids = c(FALSE, "text", "label"),
+                      highlight_labels = FALSE) {
+  col <- col[1] # not match.arg as others can be used
+  build_umap_on <- match.arg(build_umap_on)
+  add_centroids <- match.arg(add_centroids)
+  
   # check required packages
+  check_package("ggplot2")
   check_package("uwot")
   check_package("patchwork")
-
-  check_colnames(colnames(reference), c("celltype", markers))
-  check_colnames(colnames(query), c(query_color_col, markers))
-
-  if (verbose) {
-    message("Visualizing reference and query by UMAP")
+  if (is(add_centroids, "character")) {
+    check_package("ggforce")
+    check_package("ggrepel")
   }
-  set.seed(seed)
+  
 
+  # Extract data based on input type
+  if (is(reference, "list")) {
+    reference <- reference$reference
+    query <- reference$query
+  }
+  if ("cell_id" %in% colnames(reference)) id <- "cell_id" else id <- "id"
+
+  if (is.null(markers)) markers <- cyCombine::get_markers(query)
+
+  check_colnames(colnames(reference), c(col, markers))
+  if (!is.null(query)) {
+  check_colnames(colnames(query), c(query_color_col, markers))
+  }
+
+  if (verbose) message("Generating UMAP")
+
+  set.seed(seed)
   # shuffle data
   if (shuffle) {
     reference <- reference[sample(nrow(reference)), ]
-    query <- query[sample(nrow(query)), ]
-  }
-
-  if (is.null(colors)) {
-    colors <- get_distinct_colors(unique(reference$celltype))
-  }
-
-  if (down_sample & (sample_n < nrow(reference) | sample_n < nrow(query))) {
-    if (verbose) {
-      message(
-        "Down-sampling reference and query to ",
-        sample_n,
-        " cells each"
-      )
+    if (!is.null(query)) {
+      query <- query[sample(nrow(query)), ]
     }
-    reference <- reference |>
-      dplyr::slice_sample(n = min(sample_n, nrow(reference)))
-    query <- query |>
-      dplyr::slice_sample(n = min(sample_n, nrow(query)))
   }
 
-  if (build_umap_on == "both") {
+
+  if (down_sample) {
+    reference <- reference %>%
+      dplyr::slice_sample(n = min(sample_n, nrow(reference)))
+    if (!is.null(query)) {
+      query <- query %>%
+        dplyr::slice_sample(n = min(sample_n, nrow(query)))
+    }
+  }
+
+  umap_data <- reference[, markers]
+
+  if (!is.null(query)) {
+    umap_data <- rbind(umap_data, query[, markers])
+  }
+
+  if (build_umap_on == "both" | is.null(query)) {
     if (verbose) {
       message("Computing UMAP embedding of all cells of reference and query")
     }
 
     # UMAP embedding of both reference and query
-    full_umap <- dplyr::bind_rows(
-      reference[, markers],
-      query[, markers]
-    ) |>
-      uwot::umap(
+    full_umap <- uwot::umap(
+        umap_data,
         n_neighbors = 15,
         min_dist = 0.2,
         metric = "euclidean",
         ret_model = FALSE
       )
 
+    colnames(full_umap) <- c("UMAP1", "UMAP2")
+
     ref_umap <- full_umap[1:nrow(reference), ]
-    query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
+    ref_umap <- cbind(ref_umap, reference[, col, drop = FALSE])
+    if (!is.null(query)) {
+      query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
+      query_umap <- cbind(query_umap, query[, col])
+    }
+
+    # ref_umap <- full_umap[1:nrow(reference), ]
+    # query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
   } else if (build_umap_on == "reference") {
     if (verbose) {
       message(
@@ -162,94 +195,49 @@ plot_umap <- function(reference,
       )
 
     ref_umap <- ref_umap_embed$embedding
+    colnames(ref_umap) <- c("UMAP1", "UMAP2")
 
     if (verbose) {
       message("Projecting query cells onto reference UMAP embedding")
     }
 
     # projection of new data
-    query_umap <- query |>
-      dplyr::select(dplyr::all_of(markers)) |>
+    query_umap <- query[, markers] |>
       uwot::umap_transform(model = ref_umap_embed)
+    colnames(query_umap) <- c("UMAP1", "UMAP2")
   }
-
 
   if (return_data) {
-    colnames(ref_umap) <- c("UMAP1", "UMAP2")
-    colnames(query_umap) <- c("UMAP1", "UMAP2")
-
-    return(list(
-      "reference" = dplyr::bind_cols(reference, ref_umap),
-      "query" = dplyr::bind_cols(query, query_umap)
-    ))
+  reference <- cbind(reference, ref_umap)
+  if (!is.null(query)) {
+    query <- cbind(query, query_umap)
+    return(list(reference, query))
+  } else {
+    return(reference)
+  }
   }
 
-  # avoid too long cell type labels
-  names(colors) <- stringr::str_wrap(names(colors), 20)
 
-  # get number of columns in legend
-  n_legend_cols <- dplyr::case_when(
-    length(colors) > 45 ~ 4,
-    length(colors) > 30 ~ 3,
-    length(colors) > 15 ~ 2,
-    TRUE ~ 1
-  )
 
-  # plot reference colored by cell type
-  ref_embedding <- ref_umap |>
-    dplyr::as_tibble() |>
-    dplyr::mutate(celltype = stringr::str_wrap(reference$celltype, 20)) |>
-    ggplot2::ggplot(ggplot2::aes(
-      x = .data$V1,
-      y = .data$V2
-    )) +
-    ggplot2::geom_point(ggplot2::aes(color = .data$celltype),
-      size = 0.5,
-      alpha = 0.5
-    ) +
-    ggplot2::guides(color = ggplot2::guide_legend(
-      override.aes = list(
-        size = 2,
-        alpha = 1
-      ),
-      ncol = n_legend_cols
-    )) +
-    ggplot2::theme_bw() +
-    ggplot2::ggtitle("Reference") +
-    ggplot2::xlab("UMAP1") +
-    ggplot2::ylab("UMAP2") +
-    ggplot2::scale_colour_manual("Cell type",
-      values = colors
-    )
+  ref_embedding <- plot_embedding(
+    ref_umap,
+    add_centroids,
+    col,
+    colors,
+    title[1],
+    highlight_labels = highlight_labels)
 
-  # plot query colored by predicted cell type on top of reference in grey
-  query_embedding <- ggplot2::ggplot() +
-    ggplot2::geom_point(
-      ggplot2::aes(
-        x = ref_umap[, 1],
-        y = ref_umap[, 2]
-      ),
-      size = 0.5,
-      alpha = 1,
-      color = "grey87"
-    ) +
-    ggplot2::geom_point(
-      ggplot2::aes(
-        x = query_umap[, 1],
-        y = query_umap[, 2],
-        color = stringr::str_wrap(query[[query_color_col]], 20)
-      ),
-      size = 0.5,
-      alpha = 0.5,
-      show.legend = FALSE
-    ) +
-    ggplot2::theme_bw() +
-    ggplot2::ggtitle("Query - predicted cell types") +
-    ggplot2::xlab("UMAP1") +
-    ggplot2::ylab("UMAP2") +
-    ggplot2::scale_colour_manual("Cell type",
-      values = colors
-    )
+  if (is.null(query)) {
+    return(ref_embedding)
+  }
+
+  query_embedding <- plot_embedding(
+    query_umap,
+    add_centroids,
+    col,
+    colors,
+    title[2],
+    highlight_labels = highlight_labels)
 
   p <- ref_embedding +
     query_embedding + ggplot2::theme(
@@ -263,6 +251,199 @@ plot_umap <- function(reference,
 }
 
 
+#' Add centroids to embedding plot
+#'
+#' Helper function that adds centroid labels or points to an existing ggplot2 
+#' embedding visualization. Centroids are calculated as the mean UMAP coordinates
+#' for each group defined by the specified column.
+#'
+#' @param df Data frame containing UMAP coordinates and grouping variables
+#' @param embedding_plot Existing ggplot2 plot object to add centroids to
+#' @param add_centroids Character or logical indicating centroid display type.
+#' Options are "text", "label", or TRUE (equivalent to "text")
+#' @param col Character string specifying the column name to group by for centroids
+#' @param highlight_labels Logical indicating whether to highlight labels with 
+#' ellipses for cell types containing "/" (uses ggforce::geom_mark_ellipse)
+adding_centroids <- function(df, embedding_plot, add_centroids, col, highlight_labels) {
+  check_package("ggforce")
+  check_package("ggrepel")
+  centroids <- df %>%
+    dplyr::group_by(.data[[col]]) %>%
+    dplyr::summarize(UMAP1 = mean(UMAP1), UMAP2 = mean(UMAP2))
+
+
+    if (add_centroids == "text" | add_centroids == TRUE) {
+
+      if (highlight_labels) {
+        embedding_plot <- embedding_plot +
+          ggforce::geom_mark_ellipse(data = centroids |> dplyr::filter(stringr::str_detect(.data[[col]], "/")),
+            ggplot2::aes(label = .data[[col]]), label.fontsize = 7.5,
+              label.buffer = unit(1.5, "mm"),
+            con.size = 0.3, con.type = "straight", con.cap = unit(2 , "mm"), con.border = "one",
+                expand = unit(0.01, "mm"), label.fill = NA)
+
+      } else {
+        embedding_plot <- embedding_plot +
+          ggrepel::geom_text_repel(
+            data = centroids,
+            aes(label = .data[[col]]),
+            color = "black", size = 3, vjust = 1,
+            max.overlaps = Inf)
+        }
+
+    } else {
+      embedding_plot <- embedding_plot +
+        ggrepel::geom_label_repel(
+          data = centroids,
+          ggplot2::aes(label = .data[[col]]),
+          show.legend = FALSE,
+          size = 2.5,
+          box.padding = 0.5,
+          point.padding = 1, max.overlaps = Inf)
+    }
+    embedding_plot <- embedding_plot +
+      ggplot2::theme(legend.position = "none")
+
+
+  return(embedding_plot)
+}
+
+#' Plot already generated UMAP coordinates
+#'
+#' Plot an already generated UMAP. Handles both categorical and continuous
+#' coloring variables with appropriate scales and legends.
+#'
+#' @param embedding Data frame containing embedding coordinates (UMAP1, UMAP2) and 
+#' coloring variables
+#' @param col Character string specifying the column name to color points by
+#' @param colors Optional named vector of colors for categorical variables. If NULL,
+#' colors are automatically generated using cyDefine::get_distinct_colors()
+#' @param title Character string for plot title
+#' @param add_centroids Character or logical indicating whether to add centroids.
+#' Options are "text", "label", or FALSE (default)
+#' @param highlight_labels Logical indicating whether to highlight centroid labels
+#' with ellipses (default FALSE)
+#'
+#' @return ggplot2 object showing the embedding visualization
+#' @export
+plot_embedding <- function(embedding, col, colors = NULL, title, add_centroids = c(FALSE, "text", "label"), highlight_labels = FALSE) {
+
+  add_centroids <- match.arg(add_centroids)
+
+  is_factor <- class(embedding[[col]]) != "numeric"
+
+  if (is_factor) {
+
+    # avoid too long cell type labels
+    embedding <- embedding |>
+      as.data.frame() |>
+      dplyr::mutate("{col}" := stringr::str_wrap(embedding[[col]], 20))
+
+    if (is.null(colors)) {
+      colors <- cyDefine::get_distinct_colors(sort(unique(embedding[[col]])))
+    } else {
+      original_celltypes <- switch("celltype_original" %in% colnames(embedding)+1,
+                                   embedding[[col]],
+                                   embedding$celltype_original)
+      colors <- cyDefine:::expand_colors(embedding[[col]], original_celltypes, colors = colors)
+    }
+
+
+    # get number of columns in legend
+    n_legend_cols <- dplyr::case_when(
+      length(colors) > 45 ~ 4,
+      length(colors) > 30 ~ 3,
+      length(colors) > 15 ~ 2,
+      TRUE ~ 1
+    )
+
+
+    color_scale <- function(col, values) {
+      scale <- ggplot2::scale_colour_manual(col, values = values)
+      guides <- ggplot2::guides(color = ggplot2::guide_legend(
+      override.aes = list(size = 2, alpha = 1),
+      ncol = n_legend_cols
+      ))
+      return(list(scale, guides))
+      }
+  } else {
+    color_scale <- function(col, ...) {}
+  }
+
+
+  embedding_plot <- embedding |>
+    ggplot2::ggplot(ggplot2::aes(
+      x = UMAP1,
+      y = UMAP2,
+      color = .data[[col]]
+    )) +
+    ggplot2::geom_point(size = 0.5, alpha = 0.5) +
+    ggplot2::theme_bw() +
+    ggplot2::ggtitle(title) +
+    color_scale(col, colors)
+
+  if (is.character(add_centroids)) embedding_plot <-
+    adding_centroids(embedding, embedding_plot, add_centroids, col, highlight_labels)
+
+  return(embedding_plot)
+}
+
+#' Visualize multiple markers on UMAP embedding
+#'
+#' Create a multi-panel visualization showing the expression or intensity of 
+#' multiple markers overlaid on a UMAP embedding. Each
+#' marker is displayed as a separate subplot with continuous color scaling.
+#'
+#' @param embedding Data frame containing embedding coordinates (UMAP1, UMAP2) and
+#' marker expression values
+#' @param markers Character vector of marker names (column names in embedding) to visualize
+#' @param title Character string for the overall plot title (default "CyTOF UMAP")
+#' @param ncol Integer specifying number of columns in the panel layout (default 4)
+#' @param show_legend Logical indicating whether to display color legends for each
+#' marker subplot (default TRUE)
+#'
+#' @return patchwork object containing multiple ggplot2 subplots arranged in a grid
+#' @export
+#'
+plot_markers <- function(embedding, markers, title = "CyTOF UMAP", ncol = 4, show_legend = TRUE) {
+
+  check_package("patchwork")
+  # Create a list to store all plots
+  plot_list <- list()
+
+  # Generate a plot for each marker
+  for (marker in markers) {
+    # Create individual plot with marker name in title
+    p <- plot_embedding(embedding,
+                        col = marker,
+                        title = marker)
+
+    # Add to plot list
+    plot_list[[marker]] <- p
+  }
+
+  # Combine all plots using patchwork
+  n_markers <- length(markers)
+  nrow <- ceiling(n_markers / ncol)
+
+  combined_plot <- patchwork::wrap_plots(plot_list,
+                              ncol = ncol,
+                              nrow = nrow)
+
+  # Add overall title
+  combined_plot <- combined_plot +
+    patchwork::plot_annotation(
+      title = paste(title, " - All Markers"),
+      theme = ggplot2::theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+    )
+  if (!show_legend) combined_plot <- combined_plot & ggplot2::theme(legend.position = "none")
+
+  return(combined_plot)
+}
+
+
+
+
 
 #' Make bar plot of predicted cell type abundances
 #'
@@ -272,10 +453,12 @@ plot_umap <- function(reference,
 #' @return A ggplot2 bar plot of abundances
 #' @export
 #'
-plot_abundance <- function(predicted_populations,
-                           colors = NULL,
-                           return_data = FALSE,
-                           verbose = TRUE) {
+plot_abundance <- function(
+  predicted_populations,
+  colors = NULL,
+  return_data = FALSE,
+  verbose = TRUE
+) {
 
   if (verbose) {
     message("Visualizing abundance of predicted cell types")
@@ -333,6 +516,118 @@ plot_abundance <- function(predicted_populations,
     ggplot2::ggtitle("Cell type abundance") +
     ggplot2::xlab("Predicted cell types") +
     ggplot2::ylab("Proportion of cells")
+
+  return(p)
+}
+
+
+#' Compare cell type abundances between reference and query datasets
+#'
+#' Creates a grouped bar plot comparing the proportions of cell types between
+#' reference and query datasets. The plot shows percentage abundance on the y-axis
+#' and cell types on the x-axis, with bars grouped by dataset.
+#'
+#' @param reference Tibble of reference data or a list containing reference and query data.
+#' If a list, should contain elements named 'reference' and 'query'
+#' @param query Tibble of query data (cells in rows). Ignored if reference is a list
+#' @param ref_col Character string specifying the column name containing cell types
+#' in the reference dataset (default "celltype")
+#' @param query_col Character string specifying the column name containing cell types
+#' in the query dataset (default "model_prediction")
+#' @param ref_name Character string for reference dataset label in legend (default "Reference")
+#' @param query_name Character string for query dataset label in legend (default "Query")
+#' @param colors Named vector of colors for datasets. If NULL, uses default green
+#' for reference and orange for query
+#' @param return_data Logical indicating whether to return the processed data instead
+#' of the plot (default FALSE)
+#'
+#' @return ggplot2 object showing grouped bar plot of cell type abundances, or
+#' data frame if return_data = TRUE
+#' @export
+#'
+plot_abundance_comparison <- function(
+    reference,
+    query = NULL,
+    ref_col = "celltype",
+    query_col = "model_prediction",
+    ref_name = "Reference",
+    query_name = "Query",
+    colors = NULL,
+    return_data = FALSE
+    ) {
+
+  # Extract cell type columns based on input type
+  if (is(reference, "list")) {
+    ref_celltypes <- as.character(reference$reference[[ref_col]])
+    query_celltypes <- as.character(reference$query[[query_col]])
+  } else {
+    ref_celltypes <- as.character(reference[[ref_col]])
+    query_celltypes <- as.character(query[[query_col]])
+  }
+
+  # Calculate proportions for reference
+  ref_freq <- table(ref_celltypes) %>%
+    tibble::as_tibble() %>%
+    dplyr::rename(celltype = ref_celltypes) %>%
+    dplyr::mutate(
+      prop = n / sum(n),
+      dataset = ref_name
+    )
+
+  # Calculate proportions for query
+  query_freq <- table(query_celltypes) %>%
+    tibble::as_tibble() %>%
+    dplyr::rename(celltype = query_celltypes) %>%
+    dplyr::mutate(
+      prop = n / sum(n),
+      dataset = query_name
+    )
+
+  # Combine data
+  combined_freq <- rbind(ref_freq, query_freq)
+
+  # Get all unique cell types
+  all_celltypes <- unique(c(ref_celltypes, query_celltypes))
+
+  # Ensure all cell types are present in both datasets (with 0 if missing)
+  complete_data <- tidyr::expand_grid(
+    celltype = all_celltypes,
+    dataset = c(ref_name, query_name)
+  ) %>%
+    dplyr::left_join(combined_freq, by = c("celltype", "dataset")) %>%
+    dplyr::mutate(
+      n = tidyr::replace_na(n, 0),
+      prop = tidyr::replace_na(prop, 0)
+    )
+
+  if (return_data) {
+    return(complete_data)
+  }
+
+  # Set colors if not provided
+  if (is.null(colors)) {
+    colors <- c("#228B22", "#FFA500")  # Green for reference, orange for query
+    names(colors) <- c(ref_name, query_name)
+  }
+
+  # Create grouped bar plot
+  p <- ggplot2::ggplot(complete_data) +
+    ggplot2::aes(x = celltype, y = prop * 100, fill = dataset) +
+    ggplot2::geom_bar(stat = "identity", position = "dodge", width = 0.8) +
+    ggplot2::scale_fill_manual(values = colors) +
+    ggplot2::labs(
+      x = "Cell Type",
+      y = "Percentage (%)",
+      fill = "Dataset"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1),
+      legend.position = "bottom",
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank()
+    ) +
+    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%"))
 
   return(p)
 }
@@ -642,4 +937,177 @@ plot_alluvium <- function(
     ggplot2::ggtitle("True vs Predicted")
 
   return(plot)
+}
+
+
+
+
+#' Plot correlation of marker expression between reference and query by cell type
+#'
+#' Creates faceted scatter plots showing the correlation between mean marker expression
+#' in reference and query datasets for each cell type. Each plot includes a linear
+#' regression line and displays the R-squared correlation coefficient.
+#'
+#' @param reference Tibble of reference data or a list containing reference and query data.
+#' If a list, should contain elements named 'reference' and 'query'
+#' @param query Tibble of query data (cells in rows). Ignored if reference is a list
+#' @param markers Character vector of marker names (column names) to include in analysis
+#' @param ref_col Character string specifying the column name containing cell types
+#' in the reference dataset (default "celltype")
+#' @param query_col Character string specifying the column name containing cell types
+#' in the query dataset (default "model_prediction")
+#' @param ref_name Character string for reference dataset label (default "Reference")
+#' @param query_name Character string for query dataset label (default "Query")
+#' @param celltypes_to_plot Character vector of specific cell types to include. If NULL,
+#' uses intersection of cell types present in both datasets
+#' @param ncol Integer specifying number of columns in facet layout (default 3)
+#' @param point_size Numeric value for point size in scatter plots (default 3)
+#' @param marker_colors Named vector of colors for markers. If NULL, generates colors
+#' automatically using cyDefine::get_distinct_colors()
+#'
+#' @return ggplot2 object showing faceted correlation plots with R-squared values
+#' @export
+#'
+plot_expression_correlation <- function(
+    reference,
+    query = NULL,
+    markers,
+    ref_col = "celltype",
+    query_col = "model_prediction",
+    ref_name = "Reference",
+    query_name = "Query",
+    celltypes_to_plot = NULL,
+    ncol = 3,
+    point_size = 3,
+    marker_colors = NULL
+    ) {
+
+  # Extract data based on input type
+  if (is(reference, "list")) {
+    ref_data <- reference$reference
+    query_data <- reference$query
+  } else {
+    ref_data <- reference
+    query_data <- query
+  }
+
+  # Get cell types
+  ref_celltypes <- as.character(ref_data[[ref_col]])
+  query_celltypes <- as.character(query_data[[query_col]])
+
+  # If specific cell types to plot are not provided, use common cell types
+  if (is.null(celltypes_to_plot)) {
+    celltypes_to_plot <- intersect(unique(ref_celltypes), unique(query_celltypes))
+  }
+
+  # Set colors for markers if not provided
+  if (is.null(marker_colors)) {
+    marker_colors <- cyDefine::get_distinct_colors(markers)#scales::hue_pal()(length(markers))
+    names(marker_colors) <- markers
+  }
+
+  # Add cell type to data frames and select only markers
+  ref_data_long <- ref_data %>%
+    dplyr::mutate(celltype = ref_celltypes) %>%
+    dplyr::select(celltype, dplyr::all_of(markers)) %>%
+    tidyr::pivot_longer(cols = dplyr::all_of(markers),
+                 names_to = "marker",
+                 values_to = "ref_expr") %>%
+    dplyr::filter(celltype %in% celltypes_to_plot)
+
+  query_data_long <- query_data %>%
+    dplyr::mutate(celltype = query_celltypes) %>%
+    dplyr::select(celltype, dplyr::all_of(markers)) %>%
+    tidyr::pivot_longer(cols = dplyr::all_of(markers),
+                 names_to = "marker",
+                 values_to = "query_expr") %>%
+    dplyr::filter(celltype %in% celltypes_to_plot)
+
+  # Calculate mean expression for each marker per cell type
+  ref_means <- ref_data_long %>%
+    dplyr::group_by(celltype, marker) %>%
+    dplyr::summarise(ref_mean = mean(ref_expr, na.rm = TRUE), .groups = "drop")
+
+  query_means <- query_data_long %>%
+    dplyr::group_by(celltype, marker) %>%
+    dplyr::summarise(query_mean = mean(query_expr, na.rm = TRUE), .groups = "drop")
+
+  # Join the means
+  combined_data <- ref_means %>%
+    dplyr::inner_join(query_means, by = c("celltype", "marker")) %>%
+    dplyr::rename(ref_expr = ref_mean, query_expr = query_mean)
+
+  # Calculate correlations per cell type
+  correlation_data <- combined_data %>%
+    dplyr::group_by(celltype) %>%
+    dplyr::summarise(
+      r_squared = round(cor(ref_expr, query_expr,
+                            method = "pearson",
+                            use = "complete.obs")^2, 2),
+      .groups = "drop"
+    )
+
+  # Add correlation data back to combined data
+  combined_data <- combined_data %>%
+    dplyr::left_join(correlation_data, by = "celltype")
+
+  # Get ranges for annotation positioning
+  annotation_data <- combined_data %>%
+    dplyr::group_by(celltype) %>%
+    dplyr::summarise(
+      x_pos = max(ref_expr, na.rm = TRUE) * 0.95,
+      y_pos = min(query_expr, na.rm = TRUE) +
+        (max(query_expr, na.rm = TRUE) - min(query_expr, na.rm = TRUE)) * 0.05,
+      .groups = "drop"
+    ) %>%
+    dplyr::left_join(correlation_data, by = "celltype") %>%
+    dplyr::mutate(label = paste0("r² = ", r_squared))
+
+  # Create faceted plot
+  p <- ggplot2::ggplot(combined_data) +
+    ggplot2::aes(y = ref_expr, x = query_expr) +
+    ggplot2::geom_point(aes(color = marker),
+               size = point_size,
+               alpha = 0.8) +
+    ggplot2::scale_color_manual(values = marker_colors) +
+    ggplot2::geom_smooth(method = "lm", se = FALSE, color = "black",
+                linetype = "dashed", size = 0.5) +
+    ggplot2::facet_wrap(~ celltype, ncol = ncol, scales = "free") +
+    ggplot2::labs(
+      y = paste(ref_name, "expression"),
+      x = paste(query_name, "expression")
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      legend.position = ifelse(length(markers) > 10, "right", "none"),
+      strip.text = ggplot2::element_text(size = 11, face = "bold"),
+      axis.title = ggplot2::element_text(size = 9),
+      axis.text = ggplot2::element_text(size = 8),
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.border = ggplot2::element_rect(color = "gray80", fill = NA, size = 0.5)
+    )
+
+  # Add correlation annotations
+  p <- p +
+    ggplot2::geom_text(
+      data = annotation_data,
+      ggplot2::aes(x = x_pos, y = y_pos, label = label),
+      hjust = 1, vjust = 0,
+      size = 3.5,
+      fontface = "bold",
+      inherit.aes = FALSE)
+
+  # Add marker labels if there are few markers
+  if (length(markers) <= 10) {
+    check_package("ggrepel")
+    p <- p + ggrepel::geom_text_repel(
+      ggplot2::aes(label = marker),
+      size = 2.5,
+      max.overlaps = 20,
+      segment.size = 0.2,
+      segment.alpha = 0.5
+    )
+  }
+
+  return(p)
 }

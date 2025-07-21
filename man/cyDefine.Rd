@@ -28,6 +28,7 @@ cyDefine(
   num.threads = 1,
   mc.cores = NULL,
   save_adapted_reference = NULL,
+  exclude_redundant = FALSE,
   unassigned_name = "unassigned",
   train_on_unassigned = ifelse(using_pbmc, FALSE, TRUE),
   seed = 332,
@@ -99,6 +100,9 @@ specified object name or as "adapted_reference.rds" in a specified path.
 Usage: FAlSE/NULL - not stored.
 TRUE/path - stored as "adapted_reference.rds" at "./" or path.
 path/to/filename.rds - stored as "filename.rds" at path/to/.}
+
+\item{exclude_redundant}{Exclude celltypes in the reference that are not
+present in the query.}
 
 \item{unassigned_name}{Name used for unassigned cells}
 

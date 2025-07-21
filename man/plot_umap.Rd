@@ -6,17 +6,22 @@
 \usage{
 plot_umap(
   reference,
-  query,
-  markers,
+  query = NULL,
+  markers = NULL,
   colors = NULL,
   query_color_col = "predicted_celltype",
-  build_umap_on = "both",
+  build_umap_on = c("both", "reference"),
+  metric = "euclidean",
   shuffle = TRUE,
   down_sample = TRUE,
   sample_n = 10000,
   return_data = FALSE,
   seed = 332,
-  verbose = TRUE
+  verbose = TRUE,
+  title = c("Reference", "Query - predicted cell types"),
+  col = c("celltype", "batch"),
+  add_centroids = c(FALSE, "text", "label"),
+  highlight_labels = FALSE
 )
 }
 \arguments{

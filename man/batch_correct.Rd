@@ -34,7 +34,7 @@ If NULL, no covar will be used}
 
 \item{label}{The cluster or cell type label. Either as a column name or vector.}
 
-\item{norm_method}{Normalization method. Should be either 'rank', 'scale', 'CLR', or 'qnorm'. Default: 'scale'}
+\item{norm_method}{Normalization method. Should be either 'rank', 'scale', 'CLR', 'CLR_seu', 'CLR_med', or 'qnorm'. Default: 'scale'. CLR is recommended for ADT normalization. CLR_seu mimicks the Seurat implementation of CLR. CLR_med uses the median instead of geometric mean.}
 
 \item{ref.batch}{Optional. A string of the batch that should be used as the reference for batch adjustments.}
 
