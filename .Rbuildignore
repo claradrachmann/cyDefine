@@ -7,3 +7,5 @@ tmp
 .git
 data/.*\.rds
 diagram.png
+^doc$
+^Meta$

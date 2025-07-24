@@ -10,6 +10,8 @@ plot_alluvium(
   predicted = "model_prediction",
   color = NULL,
   color_by = c("true", "predicted"),
+  names = c("True", "Predicted"),
+  title = "True vs Predicted",
   n = 500,
   seed = 1286
 )
@@ -24,6 +26,10 @@ plot_alluvium(
 \item{color}{A named vector of colors for the true labels.}
 
 \item{color_by}{A character string indicating which variable to use for filling the alluvia ("true" or "predicted").}
+
+\item{names}{Names of compared variables as printed on the plot}
+
+\item{title}{Plot title}
 
 \item{n}{An integer indicating the sample size.}
 

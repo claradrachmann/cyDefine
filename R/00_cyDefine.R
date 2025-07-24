@@ -148,7 +148,7 @@ cyDefine <- function(
   }
 
   # Canonical cell type assignment
-  query <- classify_cells(
+  classified <- classify_cells(
     reference = reference,
     query = query,
     markers = markers,
@@ -164,13 +164,14 @@ cyDefine <- function(
     seed = seed,
     verbose = verbose
     )
+  rm(query)
 
 
   # Identification of unassigned cells
   if (identify_unassigned) {
 
-    query <- identify_unassigned(
-      query = query,
+    classified$query <- identify_unassigned(
+      query = classified$query,
       reference = reference,
       markers = markers,
       mtry = mtry,
@@ -182,7 +183,11 @@ cyDefine <- function(
       )
   }
 
-  return (list("query" = query, "reference" = reference))
+  return (list(
+    "query" = classified$query,
+    "reference" = reference,
+    "model" = classified$model
+    ))
 }
 
 

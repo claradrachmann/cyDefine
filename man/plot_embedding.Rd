@@ -8,9 +8,10 @@ plot_embedding(
   embedding,
   col,
   colors = NULL,
-  title,
-  add_centroids = c(FALSE, "text", "label"),
-  highlight_labels = FALSE
+  title = "",
+  add_centroids = c(FALSE, TRUE, "text", "label"),
+  highlight_labels = FALSE,
+  legend_title = ggplot2::waiver()
 )
 }
 \arguments{
@@ -25,10 +26,12 @@ colors are automatically generated using cyDefine::get_distinct_colors()}
 \item{title}{Character string for plot title}
 
 \item{add_centroids}{Character or logical indicating whether to add centroids.
-Options are "text", "label", or FALSE (default)}
+Options are "text"/TRUE, "label", or FALSE (default)}
 
 \item{highlight_labels}{Logical indicating whether to highlight centroid labels
 with ellipses (default FALSE)}
+
+\item{legend_title}{Manually assigned legend title.}
 }
 \value{
 ggplot2 object showing the embedding visualization

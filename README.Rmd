@@ -16,7 +16,8 @@ knitr::opts_chunk$set(
 
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 
-`cyDefine` robustly identifies canonical cell types as well as unassigned (and potentially novel) cells in various single-cell cytometry datasets.
+`cyDefine` robustly identifies canonical cell types as well as unassigned (and potentially novel) cells in various single-cell cytometry datasets using reference-based phenotype transfer.
+In short, `cyDefine` integrates a reference and query dataset, trains a random forest model on the reference, and applies it to the query data. Outliers and artifacts can then be identified based on unassigned cells in the reference (supervised) or from dissimilarity to predicted cell type (unsupervised).
 
 ## Article
 
@@ -39,7 +40,7 @@ remotes::install_github("biosurf/cyCombine")
 remotes::install_github("claradrachmann/cyDefine", build_vignettes = TRUE)
 ```
 
-## Documentation
+## Documentation {#documentation}
 
 To view the documentation for using `cyDefine`, start R and enter:
 
@@ -54,7 +55,7 @@ Please see the vignettes for a detailed description of usage.
 Here is a quick run-through of the main functionalities using example data.<br>
 A large PBMC reference is also available, see `?pbmc_reference`.
 
-```{r cyDefine, message=FALSE}
+```{r cyDefine}
 library(cyDefine)
 
 # Run the cyDefine pipeline
@@ -63,66 +64,53 @@ classified <- cyDefine(
   query = example_query, 
   markers = example_markers,                   # markers/features to use
   num.threads = 4,                             # Number of threads for parallelization
-  mtry = floor(length(example_markers)/4),     # Number of markers to use in random forest classification
+  mtry = floor(length(example_markers)/3),     # Number of markers to use in random forest classification
   num.trees = 500,                             # Number of trees to build in classification
   adapt_reference = TRUE,                      # Whether the reference should be adapted to the markers available in the query
   using_pbmc = FALSE,                          # Whether the PBMC reference is used
   batch_correct = TRUE,                        # Whether to integrate the reference and query using cyCombine (see ?cyCombine::batch_correct for more options)
   xdim = 6, ydim = 6,                          # Clustering dimensions for the integration
+  exclude_redundant = TRUE,                    # Exclude reference cells not in the query
   identify_unassigned = TRUE,                  # Whether unassignable cells should be identified
   train_on_unassigned = FALSE,                 # Whether unassigned cells should be identified unsupervised or using unassigned cells in the reference
   seed = 332,
   verbose = TRUE
   )
-reference <- classified$reference
-classified_query <- classified$query
-
 
 ```
+`cyDefine()` returns three objects: 
+
+```{r} 
+names(classified)
+```
+
 
 ## Visualizations
 
-cyDefine provides functionality for visualizing your results by UMAP, cell type abundance, and marker expression.
-Additionally, you can create a chart of the merged cell populations during reference adaptation.
+cyDefine provides several functionalities for visualizing your results. 
+Here's a highlight of a UMAP and a heatmap of marker expression. 
+See the [vignette](#documentation) for all plotting functions.
 
-```{r diagram, eval=FALSE}
-# Diagram of reference adaptation is only relevant if cell populations are merged (i.e., if "celltype_original" is created)
-plot_diagram(reference, fontcolor_nodes = c("unassigned" = "white"))
-```
-```{r show_diagram, echo=FALSE, fig.height=2.5, fig.width=6}
-# Diagram of reference adaptation is only relevant if cell populations are merged (i.e., if "celltype_original" is created)
-diagram <- plot_diagram(reference)
-if (!is.null(diagram)) {
-  vtree::grVizToPNG(diagram, width = 1200, height = 500)
-  knitr::include_graphics("diagram.png")
-}
-```
 
 ```{r umap, message=FALSE, warning=FALSE, fig.height=5, fig.width=12}
 
 # Define a color per cell type + black for unassigned
-celltype_colors <- get_distinct_colors(unique(reference$celltype), 
+celltype_colors <- get_distinct_colors(unique(classified$reference$celltype), 
                                        add_unassigned = TRUE)
 
 # UMAP of reference and query
-plot_umap(reference,
-          classified_query,
-          example_markers,
-          sample_n = 5000,
-          colors = celltype_colors)
-```
-
-
-```{r abundance, message=FALSE, warning=FALSE, fig.height = 7, fig.width = 13}
-# Barplot of cell type abundances in query
-plot_abundance(predicted_populations = classified_query$predicted_celltype,
-               colors = celltype_colors)
+plot_umap(
+  classified$reference,
+  classified$query,
+  example_markers,
+  sample_n = 5000,
+  colors = celltype_colors)
 ```
 
 
 ```{r heatmap, message=FALSE, warning=FALSE, fig.height = 10, fig.width = 10}
 # Heatmap of marker expressions per cell type in query
-plot_heatmap(classified_query, 
+plot_heatmap(classified$query, 
              population_col = "predicted_celltype",
              markers_to_plot = example_markers)
 

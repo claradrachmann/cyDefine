@@ -2,6 +2,7 @@ library(tidyverse)
 library(Seurat)
 library(SeuratDisk)
 library(ggplot2)
+library(cyDefine)
 library(cyCombine)
 
 # The Seurat PBMC reference is obtained from https://atlas.fredhutch.org/nygc/multimodal-pbmc/
@@ -34,7 +35,6 @@ seu_reference <- Seurat::RunPCA(seu_reference, features = rownames(seu_reference
 seu_reference <- Seurat::RunUMAP(seu_reference, dims = 1:10) #, features = markers)
 # seu_reference <- Seurat::RunUMAP(seu_reference, features = markers)
 #
-devtools::load_all("../cyDefine/")
 colors <- cyDefine:::get_distinct_colors(unique(seu_reference$celltype.l2), FALSE)
 
 Seurat::DimPlot(seu_reference, reduction = "umap", group.by = "batch")

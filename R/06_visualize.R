@@ -34,7 +34,7 @@ get_distinct_colors <- function(populations, add_unassigned = TRUE) {
 }
 
 #' Expand colors to new/merged labels
-#' 
+#'
 #' @noRd
 expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors = NULL) {
 
@@ -64,7 +64,8 @@ expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors =
 #' @param markers Character vector of available markers
 #' @param colors Optional: Named list of colors per cell type. Values should be
 #' HEX colors and names should be the unique cell types
-#' @param query_color_col Column to color by. Default "predicted_celltype"
+#' @param query_col Column to color by. Default "predicted_celltype"
+#' @param ref_col Column to color by. Default "celltype"
 #' @param build_umap_on Character describing what data should be applied for
 #' performing the UMAP embedding. Options are "both" (default), "reference",
 #' and "query". "Both" implies that the UMAP embedding is done on both the
@@ -77,6 +78,7 @@ expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors =
 #' returned rather than a ggplot2 object
 #' @param seed Random seed
 #' @param verbose Verbosity
+#' @inheritParams plot_embedding
 #'
 #' @return ggplot2 plot
 #' @export
@@ -85,7 +87,8 @@ plot_umap <- function(reference,
                       query = NULL,
                       markers = NULL,
                       colors = NULL,
-                      query_color_col = "predicted_celltype",
+                      query_col = "predicted_celltype",
+                      ref_col = "celltype",
                       build_umap_on = c("both", "reference"),
                       metric = "euclidean",
                       shuffle = TRUE,
@@ -95,13 +98,13 @@ plot_umap <- function(reference,
                       seed = 332,
                       verbose = TRUE,
                       title = c("Reference", "Query - predicted cell types"),
-                      col = c("celltype", "batch"),
-                      add_centroids = c(FALSE, "text", "label"),
+                      legend_title = "Cell type",
+                      add_centroids =  c(FALSE, TRUE, "text", "label"),
                       highlight_labels = FALSE) {
-  col <- col[1] # not match.arg as others can be used
+
   build_umap_on <- match.arg(build_umap_on)
-  add_centroids <- match.arg(add_centroids)
-  
+  add_centroids <- as.character(add_centroids) |> match.arg(add_centroids)
+
   # check required packages
   check_package("ggplot2")
   check_package("uwot")
@@ -110,7 +113,7 @@ plot_umap <- function(reference,
     check_package("ggforce")
     check_package("ggrepel")
   }
-  
+
 
   # Extract data based on input type
   if (is(reference, "list")) {
@@ -119,11 +122,11 @@ plot_umap <- function(reference,
   }
   if ("cell_id" %in% colnames(reference)) id <- "cell_id" else id <- "id"
 
-  if (is.null(markers)) markers <- cyCombine::get_markers(query)
+  if (is.null(markers)) markers <- cyCombine::get_markers(reference)
 
-  check_colnames(colnames(reference), c(col, markers))
+  check_colnames(colnames(reference), c(ref_col, markers))
   if (!is.null(query)) {
-  check_colnames(colnames(query), c(query_color_col, markers))
+  check_colnames(colnames(query), c(query_col, markers))
   }
 
   if (verbose) message("Generating UMAP")
@@ -139,10 +142,10 @@ plot_umap <- function(reference,
 
 
   if (down_sample) {
-    reference <- reference %>%
+    reference <- reference |>
       dplyr::slice_sample(n = min(sample_n, nrow(reference)))
     if (!is.null(query)) {
-      query <- query %>%
+      query <- query |>
         dplyr::slice_sample(n = min(sample_n, nrow(query)))
     }
   }
@@ -170,10 +173,8 @@ plot_umap <- function(reference,
     colnames(full_umap) <- c("UMAP1", "UMAP2")
 
     ref_umap <- full_umap[1:nrow(reference), ]
-    ref_umap <- cbind(ref_umap, reference[, col, drop = FALSE])
     if (!is.null(query)) {
       query_umap <- full_umap[(nrow(reference) + 1):nrow(full_umap), ]
-      query_umap <- cbind(query_umap, query[, col])
     }
 
     # ref_umap <- full_umap[1:nrow(reference), ]
@@ -207,53 +208,54 @@ plot_umap <- function(reference,
     colnames(query_umap) <- c("UMAP1", "UMAP2")
   }
 
-  if (return_data) {
   reference <- cbind(reference, ref_umap)
-  if (!is.null(query)) {
-    query <- cbind(query, query_umap)
-    return(list(reference, query))
-  } else {
-    return(reference)
-  }
-  }
+  if (!is.null(query)) query <- cbind(query, query_umap)
 
 
-
-  ref_embedding <- plot_embedding(
-    ref_umap,
-    add_centroids,
-    col,
-    colors,
-    title[1],
-    highlight_labels = highlight_labels)
+  ref_plot <- plot_embedding(
+    reference,
+    add_centroids = add_centroids,
+    col = ref_col,
+    colors = colors,
+    title = title[1],
+    highlight_labels = highlight_labels,
+    legend_title = legend_title)
 
   if (is.null(query)) {
-    return(ref_embedding)
+    if (return_data) {
+      list("data" = reference, "plot" = ref_plot)
+    } else {
+      return(ref_plot)
+    }
   }
 
-  query_embedding <- plot_embedding(
-    query_umap,
-    add_centroids,
-    col,
-    colors,
-    title[2],
-    highlight_labels = highlight_labels)
+  query_plot <- plot_embedding(
+    query,
+    add_centroids = add_centroids,
+    col = query_col,
+    colors = colors,
+    title = title[2],
+    highlight_labels = highlight_labels,
+    legend_title = legend_title)
 
-  p <- ref_embedding +
-    query_embedding + ggplot2::theme(
+  p <- ref_plot + ggplot2::theme(legend.position = "none") +
+    query_plot + ggplot2::theme(
       axis.title.y = ggplot2::element_blank(),
       axis.text.y = ggplot2::element_blank(),
       axis.ticks.y = ggplot2::element_blank()
-    ) +
-    patchwork::plot_layout(guides = "collect")
+    )
 
-  return(p)
+  if (return_data) {
+    list("reference" = reference, "query" = query, "plot" = p)
+  } else {
+    return(p)
+  }
 }
 
 
 #' Add centroids to embedding plot
 #'
-#' Helper function that adds centroid labels or points to an existing ggplot2 
+#' Helper function that adds centroid labels or points to an existing ggplot2
 #' embedding visualization. Centroids are calculated as the mean UMAP coordinates
 #' for each group defined by the specified column.
 #'
@@ -262,17 +264,17 @@ plot_umap <- function(reference,
 #' @param add_centroids Character or logical indicating centroid display type.
 #' Options are "text", "label", or TRUE (equivalent to "text")
 #' @param col Character string specifying the column name to group by for centroids
-#' @param highlight_labels Logical indicating whether to highlight labels with 
+#' @param highlight_labels Logical indicating whether to highlight labels with
 #' ellipses for cell types containing "/" (uses ggforce::geom_mark_ellipse)
 adding_centroids <- function(df, embedding_plot, add_centroids, col, highlight_labels) {
   check_package("ggforce")
   check_package("ggrepel")
-  centroids <- df %>%
-    dplyr::group_by(.data[[col]]) %>%
+  centroids <- df |>
+    dplyr::group_by(.data[[col]]) |>
     dplyr::summarize(UMAP1 = mean(UMAP1), UMAP2 = mean(UMAP2))
 
 
-    if (add_centroids == "text" | add_centroids == TRUE) {
+    if (add_centroids == "text" | add_centroids == "TRUE") {
 
       if (highlight_labels) {
         embedding_plot <- embedding_plot +
@@ -313,22 +315,24 @@ adding_centroids <- function(df, embedding_plot, add_centroids, col, highlight_l
 #' Plot an already generated UMAP. Handles both categorical and continuous
 #' coloring variables with appropriate scales and legends.
 #'
-#' @param embedding Data frame containing embedding coordinates (UMAP1, UMAP2) and 
+#' @param embedding Data frame containing embedding coordinates (UMAP1, UMAP2) and
 #' coloring variables
 #' @param col Character string specifying the column name to color points by
 #' @param colors Optional named vector of colors for categorical variables. If NULL,
 #' colors are automatically generated using cyDefine::get_distinct_colors()
 #' @param title Character string for plot title
 #' @param add_centroids Character or logical indicating whether to add centroids.
-#' Options are "text", "label", or FALSE (default)
+#' Options are "text"/TRUE, "label", or FALSE (default)
 #' @param highlight_labels Logical indicating whether to highlight centroid labels
 #' with ellipses (default FALSE)
+#' @param legend_title Manually assigned legend title.
 #'
 #' @return ggplot2 object showing the embedding visualization
 #' @export
-plot_embedding <- function(embedding, col, colors = NULL, title, add_centroids = c(FALSE, "text", "label"), highlight_labels = FALSE) {
+plot_embedding <- function(embedding, col, colors = NULL, title = "", add_centroids = c(FALSE, TRUE, "text", "label"), highlight_labels = FALSE,
+                           legend_title = ggplot2::waiver()) {
 
-  add_centroids <- match.arg(add_centroids)
+  add_centroids <- as.character(add_centroids) |> match.arg(add_centroids)
 
   is_factor <- class(embedding[[col]]) != "numeric"
 
@@ -358,9 +362,10 @@ plot_embedding <- function(embedding, col, colors = NULL, title, add_centroids =
     )
 
 
-    color_scale <- function(col, values) {
+    color_scale <- function(col, values, legend_title) {
       scale <- ggplot2::scale_colour_manual(col, values = values)
       guides <- ggplot2::guides(color = ggplot2::guide_legend(
+        title = legend_title,
       override.aes = list(size = 2, alpha = 1),
       ncol = n_legend_cols
       ))
@@ -380,9 +385,9 @@ plot_embedding <- function(embedding, col, colors = NULL, title, add_centroids =
     ggplot2::geom_point(size = 0.5, alpha = 0.5) +
     ggplot2::theme_bw() +
     ggplot2::ggtitle(title) +
-    color_scale(col, colors)
+    color_scale(col, colors, legend_title)
 
-  if (is.character(add_centroids)) embedding_plot <-
+  if (add_centroids != "FALSE") embedding_plot <-
     adding_centroids(embedding, embedding_plot, add_centroids, col, highlight_labels)
 
   return(embedding_plot)
@@ -390,7 +395,7 @@ plot_embedding <- function(embedding, col, colors = NULL, title, add_centroids =
 
 #' Visualize multiple markers on UMAP embedding
 #'
-#' Create a multi-panel visualization showing the expression or intensity of 
+#' Create a multi-panel visualization showing the expression or intensity of
 #' multiple markers overlaid on a UMAP embedding. Each
 #' marker is displayed as a separate subplot with continuous color scaling.
 #'
@@ -416,7 +421,8 @@ plot_markers <- function(embedding, markers, title = "CyTOF UMAP", ncol = 4, sho
     # Create individual plot with marker name in title
     p <- plot_embedding(embedding,
                         col = marker,
-                        title = marker)
+                        title = marker,
+                        highlight_labels = FALSE)
 
     # Add to plot list
     plot_list[[marker]] <- p
@@ -566,18 +572,18 @@ plot_abundance_comparison <- function(
   }
 
   # Calculate proportions for reference
-  ref_freq <- table(ref_celltypes) %>%
-    tibble::as_tibble() %>%
-    dplyr::rename(celltype = ref_celltypes) %>%
+  ref_freq <- table(ref_celltypes) |>
+    tibble::as_tibble() |>
+    dplyr::rename(celltype = ref_celltypes) |>
     dplyr::mutate(
       prop = n / sum(n),
       dataset = ref_name
     )
 
   # Calculate proportions for query
-  query_freq <- table(query_celltypes) %>%
-    tibble::as_tibble() %>%
-    dplyr::rename(celltype = query_celltypes) %>%
+  query_freq <- table(query_celltypes) |>
+    tibble::as_tibble() |>
+    dplyr::rename(celltype = query_celltypes) |>
     dplyr::mutate(
       prop = n / sum(n),
       dataset = query_name
@@ -593,8 +599,8 @@ plot_abundance_comparison <- function(
   complete_data <- tidyr::expand_grid(
     celltype = all_celltypes,
     dataset = c(ref_name, query_name)
-  ) %>%
-    dplyr::left_join(combined_freq, by = c("celltype", "dataset")) %>%
+  ) |>
+    dplyr::left_join(combined_freq, by = c("celltype", "dataset")) |>
     dplyr::mutate(
       n = tidyr::replace_na(n, 0),
       prop = tidyr::replace_na(prop, 0)
@@ -886,6 +892,8 @@ get_merge_list <- function(adapted_reference) {
 #' @param color_by A character string indicating which variable to use for filling the alluvia ("true" or "predicted").
 #' @param n An integer indicating the sample size.
 #' @param seed An integer indicating the seed value for random sampling.
+#' @param title Plot title
+#' @param names Names of compared variables as printed on the plot
 #'
 #' @return A ggplot object representing the alluvial plot.
 #'
@@ -900,6 +908,8 @@ plot_alluvium <- function(
     predicted = "model_prediction",
     color = NULL,
     color_by = c("true", "predicted"),
+    names = c("True", "Predicted"),
+    title = "True vs Predicted",
     n = 500,
     seed = 1286
     ) {
@@ -923,7 +933,7 @@ plot_alluvium <- function(
   plot <- ggplot2::ggplot(df, ggplot2::aes_string(axis1 = true, axis2 = predicted)) +
     ggalluvial::geom_alluvium(ggplot2::aes_string(fill = color_by), alpha = .7, reverse = TRUE) +
     ggalluvial::geom_stratum(width = 1/4) +
-    ggplot2::geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    ggplot2::geom_text(stat = ggalluvial::StatStratum, ggplot2::aes(label = ggplot2::after_stat(stratum))) +
     ggplot2::scale_x_discrete(limits = c("True", "Predicted"), expand = c(0.15, 0.05)) +
     ggplot2::scale_fill_manual(values = sort(color)) +
     ggplot2::theme_void() +
@@ -934,7 +944,7 @@ plot_alluvium <- function(
       axis.title.y = ggplot2::element_text(size = 14, face = "bold"),
       legend.position = "none"
     ) +
-    ggplot2::ggtitle("True vs Predicted")
+    ggplot2::ggtitle(title)
 
   return(plot)
 }
@@ -964,6 +974,8 @@ plot_alluvium <- function(
 #' @param point_size Numeric value for point size in scatter plots (default 3)
 #' @param marker_colors Named vector of colors for markers. If NULL, generates colors
 #' automatically using cyDefine::get_distinct_colors()
+#'
+#' @importFrom stats cor
 #'
 #' @return ggplot2 object showing faceted correlation plots with R-squared values
 #' @export
@@ -1007,60 +1019,60 @@ plot_expression_correlation <- function(
   }
 
   # Add cell type to data frames and select only markers
-  ref_data_long <- ref_data %>%
-    dplyr::mutate(celltype = ref_celltypes) %>%
-    dplyr::select(celltype, dplyr::all_of(markers)) %>%
+  ref_data_long <- ref_data |>
+    dplyr::mutate(celltype = ref_celltypes) |>
+    dplyr::select(celltype, dplyr::all_of(markers)) |>
     tidyr::pivot_longer(cols = dplyr::all_of(markers),
                  names_to = "marker",
-                 values_to = "ref_expr") %>%
+                 values_to = "ref_expr") |>
     dplyr::filter(celltype %in% celltypes_to_plot)
 
-  query_data_long <- query_data %>%
-    dplyr::mutate(celltype = query_celltypes) %>%
-    dplyr::select(celltype, dplyr::all_of(markers)) %>%
+  query_data_long <- query_data |>
+    dplyr::mutate(celltype = query_celltypes) |>
+    dplyr::select(celltype, dplyr::all_of(markers)) |>
     tidyr::pivot_longer(cols = dplyr::all_of(markers),
                  names_to = "marker",
-                 values_to = "query_expr") %>%
+                 values_to = "query_expr") |>
     dplyr::filter(celltype %in% celltypes_to_plot)
 
   # Calculate mean expression for each marker per cell type
-  ref_means <- ref_data_long %>%
-    dplyr::group_by(celltype, marker) %>%
+  ref_means <- ref_data_long |>
+    dplyr::group_by(celltype, marker) |>
     dplyr::summarise(ref_mean = mean(ref_expr, na.rm = TRUE), .groups = "drop")
 
-  query_means <- query_data_long %>%
-    dplyr::group_by(celltype, marker) %>%
+  query_means <- query_data_long |>
+    dplyr::group_by(celltype, marker) |>
     dplyr::summarise(query_mean = mean(query_expr, na.rm = TRUE), .groups = "drop")
 
   # Join the means
-  combined_data <- ref_means %>%
-    dplyr::inner_join(query_means, by = c("celltype", "marker")) %>%
+  combined_data <- ref_means |>
+    dplyr::inner_join(query_means, by = c("celltype", "marker")) |>
     dplyr::rename(ref_expr = ref_mean, query_expr = query_mean)
 
   # Calculate correlations per cell type
-  correlation_data <- combined_data %>%
-    dplyr::group_by(celltype) %>%
+  correlation_data <- combined_data |>
+    dplyr::group_by(celltype) |>
     dplyr::summarise(
-      r_squared = round(cor(ref_expr, query_expr,
-                            method = "pearson",
-                            use = "complete.obs")^2, 2),
+      r_squared = round(stats::cor(ref_expr, query_expr,
+                                   method = "pearson",
+                                   use = "complete.obs")^2, 2),
       .groups = "drop"
     )
 
   # Add correlation data back to combined data
-  combined_data <- combined_data %>%
+  combined_data <- combined_data |>
     dplyr::left_join(correlation_data, by = "celltype")
 
   # Get ranges for annotation positioning
-  annotation_data <- combined_data %>%
-    dplyr::group_by(celltype) %>%
+  annotation_data <- combined_data |>
+    dplyr::group_by(celltype) |>
     dplyr::summarise(
       x_pos = max(ref_expr, na.rm = TRUE) * 0.95,
       y_pos = min(query_expr, na.rm = TRUE) +
         (max(query_expr, na.rm = TRUE) - min(query_expr, na.rm = TRUE)) * 0.05,
       .groups = "drop"
-    ) %>%
-    dplyr::left_join(correlation_data, by = "celltype") %>%
+    ) |>
+    dplyr::left_join(correlation_data, by = "celltype") |>
     dplyr::mutate(label = paste0("r² = ", r_squared))
 
   # Create faceted plot
@@ -1111,3 +1123,265 @@ plot_expression_correlation <- function(
 
   return(p)
 }
+
+
+
+#' Extract and plot per-class marker importance
+#'
+#' Calculates marker importance for each cell type by analyzing how each marker
+#' contributes to distinguishing that cell type from others using one-vs-all approach.
+#'
+#' @param reference Training data used to build the model
+#' @param col Name of the cell type column
+#' @param markers Vector of marker names
+#' @param top_n Number of top variables to show per class (default 10)
+#'
+#' @return ggplot2 heatmap showing variable importance by cell type
+#' @export
+#'
+plot_marker_importance_cell <- function(reference, col = "celltype", markers = get_markers(reference), top_n = length(markers)) {
+
+  cell_types <- unique(reference[[col]])
+  importance_matrix <- matrix(0, nrow = length(markers), ncol = length(cell_types))
+  rownames(importance_matrix) <- markers
+  colnames(importance_matrix) <- cell_types
+
+  # Calculate importance for each cell type using one-vs-all
+  for (ct in cell_types) {
+    binary_labels <- ifelse(reference[[col]] == ct, ct, "Other")
+
+    if (length(unique(binary_labels)) > 1) {  # Only if we have both classes
+      binary_model <- ranger::ranger(
+        y = as.factor(binary_labels),
+        x = reference[, markers],
+        importance = "impurity",
+        num.trees = 100
+      )
+      importance_matrix[, ct] <- binary_model$variable.importance
+    }
+  }
+
+  # Convert to long format for plotting
+  importance_df <- importance_matrix |>
+    as.data.frame() |>
+    tibble::rownames_to_column("marker") |>
+    tidyr::pivot_longer(cols = -marker, names_to = "celltype", values_to = "importance")
+
+  # Get top markers overall
+  top_markers <- importance_df |>
+    dplyr::group_by(marker) |>
+    dplyr::summarise(total_importance = sum(importance), .groups = "drop") |>
+    dplyr::arrange(desc(total_importance)) |>
+    dplyr::slice_head(n = top_n) |>
+    dplyr::pull(marker)
+
+  # Filter to top markers
+  plot_data <- importance_df |>
+    dplyr::filter(marker %in% top_markers) |>
+    dplyr::mutate(marker = factor(marker, levels = rev(top_markers)))
+
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = celltype, y = marker, fill = importance)) +
+    ggplot2::geom_tile() +
+    ggplot2::scale_fill_gradient2(low = "white", mid = "lightblue", high = "darkblue",
+                                  name = "Importance") +
+    ggplot2::labs(
+      title = "Variable Importance by Cell Type",
+      x = "Cell Type",
+      y = "Markers"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+      plot.title = ggplot2::element_text(size = 14, face = "bold")
+    )
+
+  return(p)
+}
+
+
+#' Plot minimal marker sets for cell type discrimination
+#'
+#' Identifies the smallest set of markers needed to distinguish each cell type
+#' from all others using recursive feature elimination approach.
+#'
+#' @param reference Training data
+#' @param col Name of cell type column
+#' @param markers Vector of marker names
+#' @param n_markers Number of markers to consider per cell type (default 5)
+#'
+#' @return ggplot2 object showing minimal marker sets
+#' @export
+#'
+plot_top_marker_importance <- function(
+    reference,
+    col = "celltype",
+    markers = NULL,
+    n_markers = 5) {
+
+  if (is.null(markers)) markers <- get_markers(reference)
+
+  cell_types <- unique(reference[[col]])
+  minimal_sets <- list()
+
+  for (ct in cell_types) {
+    # Create binary classification problem
+    binary_labels <- ifelse(reference[[col]] == ct, "Target", "Other")
+
+    if (length(unique(binary_labels)) > 1) {
+      # Build model and get importance
+      binary_model <- ranger::ranger(
+        y = as.factor(binary_labels),
+        x = reference[, markers],
+        importance = "impurity",
+        num.trees = 100
+      )
+
+      # Get top markers for this cell type
+      importance_scores <- binary_model$variable.importance
+      top_markers <- names(sort(importance_scores, decreasing = TRUE))[1:n_markers]
+
+      # Normalize importance scores for this cell type (0-1 scale)
+      # normalized_importance <- importance_scores / max(importance_scores)
+      # normalized_importance <- scale(importance_scores)[,1]
+      normalized_importance <- (importance_scores - min(importance_scores)) /
+        (max(importance_scores) - min(importance_scores))
+
+      minimal_sets[[ct]] <- data.frame(
+        celltype = ct,
+        marker = top_markers,
+        importance = importance_scores[top_markers],
+        normalized_importance = normalized_importance[top_markers],
+        rank = 1:n_markers
+      )
+    }
+  }
+
+  # Combine results
+  minimal_df <- do.call(rbind, minimal_sets)
+
+  p <- ggplot2::ggplot(minimal_df, ggplot2::aes(x = rank, y = celltype, fill = normalized_importance)) +
+    ggplot2::geom_tile(color = "white") +
+    ggplot2::geom_text(ggplot2::aes(label = marker), size = 2.5, color = "white", fontface = "bold") +
+    ggplot2::scale_fill_gradient(low = "lightblue", high = "darkblue",
+                                 name = "Normalized\nImportance",
+                                 labels = scales::percent_format()) +
+    ggplot2::scale_x_continuous(breaks = 1:n_markers, labels = paste("Marker", 1:n_markers)) +
+    ggplot2::labs(
+      title = "Minimal Marker Sets for Cell Type Discrimination",
+      subtitle = "Top markers needed to distinguish each cell type from others",
+      x = "Marker Priority",
+      y = "Cell Type"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+      plot.title = ggplot2::element_text(size = 14, face = "bold")
+    )
+
+  return(p)
+}
+
+#' Plot marker importance from Random Forest model
+#'
+#' Creates a horizontal bar plot showing the importance scores of markers used
+#' in the Random Forest model. Markers are ordered by importance score.
+#'
+#' @param model Random Forest model object (from ranger package)
+#' @param top_n Integer specifying number of top markers to display. If NULL,
+#' shows all variables (default NULL)
+#' @param title Character string for plot title (default "Marker Importance")
+#' @param color Single color for bars or named vector of colors by marker
+#'
+#' @return ggplot2 object showing marker importance scores
+#' @export
+#'
+plot_marker_importance <- function(model, top_n = NULL, title = "Marker Importance", color = "steelblue") {
+
+  # Extract variable importance
+  importance_data <- tibble::tibble(
+    variable = names(model$variable.importance),
+    importance = model$variable.importance
+  ) |>
+    dplyr::arrange(dplyr::desc(importance))
+
+  # Filter to top_n if specified
+  if (!is.null(top_n)) {
+    importance_data <- importance_data |>
+      dplyr::slice_head(n = top_n)
+  }
+
+  # Reorder factor levels for plotting
+  importance_data$variable <- factor(importance_data$variable,
+                                     levels = importance_data$variable)
+
+  p <- ggplot2::ggplot(importance_data, ggplot2::aes(x = importance, y = variable)) +
+    ggplot2::geom_col(fill = color, alpha = 0.8) +
+    ggplot2::labs(
+      title = title,
+      x = "Importance Score",
+      y = "Variables"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(size = 14, face = "bold"),
+      axis.text.y = ggplot2::element_text(size = 10),
+      panel.grid.minor = ggplot2::element_blank()
+    )
+
+  return(p)
+}
+
+
+
+#' Analyze marker usage frequency across trees
+#'
+#' Shows how often each marker is used for splitting across all trees,
+#' revealing which variables are consistently important vs occasionally useful.
+#'
+#' @param model Random Forest model object
+#' @param top_n Number of top variables to display (default 15)
+#'
+#' @return ggplot2 object showing variable usage frequency
+#' @export
+#'
+plot_marker_usage <- function(model, top_n = 15) {
+
+  forest <- model$forest
+  marker_names <- forest$independent.variable.names
+
+  # Count variable usage across all trees
+  all_splits <- unlist(forest$split.varIDs)
+  variable_counts <- table(all_splits)
+
+  # Convert to marker names
+  usage_data <- data.frame(
+    marker_index = as.numeric(names(variable_counts)),
+    usage_count = as.numeric(variable_counts)
+  ) |>
+    dplyr::mutate(
+      marker_name = marker_names[marker_index + 1],  # R is 1-indexed, split.varIDs are 0-indexed
+      usage_percentage = usage_count / sum(usage_count) * 100
+    ) |>
+    dplyr::arrange(dplyr::desc(usage_count)) |>
+    dplyr::slice_head(n = top_n) |>
+    dplyr::mutate(marker_name = factor(marker_name, levels = rev(marker_name)))
+
+  p <- ggplot2::ggplot(usage_data, ggplot2::aes(x = usage_percentage, y = marker_name)) +
+    ggplot2::geom_col(fill = "darkgreen", alpha = 0.7) +
+    ggplot2::geom_text(ggplot2::aes(label = paste0(round(usage_percentage, 1), "%")),
+                       hjust = -0.1, size = 3) +
+    ggplot2::labs(
+      title = "Marker Usage",
+      subtitle = "How often each marker is used for splitting decisions",
+      x = "Percentage of Total Splits",
+      y = "Markers"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(size = 14, face = "bold")
+    ) +
+    ggplot2::xlim(0, max(usage_data$usage_percentage) * 1.1)
+
+  return(p)
+}
+

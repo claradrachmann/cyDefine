@@ -198,5 +198,5 @@ classify_cells <- function(
   query <- dplyr::bind_cols(query, "model_prediction" = pred) |>
     dplyr::arrange(id)
 
-  return(query)
+  return(list("query" = query, "model" = rf_model))
 }

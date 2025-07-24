@@ -10,3 +10,5 @@ vignettes/*.R
 tmp
 data/*.rds
 diagram.png
+/doc/
+/Meta/

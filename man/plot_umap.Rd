@@ -9,7 +9,8 @@ plot_umap(
   query = NULL,
   markers = NULL,
   colors = NULL,
-  query_color_col = "predicted_celltype",
+  query_col = "predicted_celltype",
+  ref_col = "celltype",
   build_umap_on = c("both", "reference"),
   metric = "euclidean",
   shuffle = TRUE,
@@ -19,8 +20,8 @@ plot_umap(
   seed = 332,
   verbose = TRUE,
   title = c("Reference", "Query - predicted cell types"),
-  col = c("celltype", "batch"),
-  add_centroids = c(FALSE, "text", "label"),
+  legend_title = "Cell type",
+  add_centroids = c(FALSE, TRUE, "text", "label"),
   highlight_labels = FALSE
 )
 }
@@ -34,7 +35,9 @@ plot_umap(
 \item{colors}{Optional: Named list of colors per cell type. Values should be
 HEX colors and names should be the unique cell types}
 
-\item{query_color_col}{Column to color by. Default "predicted_celltype"}
+\item{query_col}{Column to color by. Default "predicted_celltype"}
+
+\item{ref_col}{Column to color by. Default "celltype"}
 
 \item{build_umap_on}{Character describing what data should be applied for
 performing the UMAP embedding. Options are "both" (default), "reference",
@@ -54,6 +57,16 @@ returned rather than a ggplot2 object}
 \item{seed}{Random seed}
 
 \item{verbose}{Verbosity}
+
+\item{title}{Character string for plot title}
+
+\item{legend_title}{Manually assigned legend title.}
+
+\item{add_centroids}{Character or logical indicating whether to add centroids.
+Options are "text"/TRUE, "label", or FALSE (default)}
+
+\item{highlight_labels}{Logical indicating whether to highlight centroid labels
+with ellipses (default FALSE)}
 }
 \value{
 ggplot2 plot
