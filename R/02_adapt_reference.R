@@ -207,7 +207,6 @@ merge_populations <- function(
     by = c("celltype" = "popu")
   ) |>
     dplyr::mutate(
-      celltype_original = celltype,
       celltype = dplyr::coalesce(
         merged_label,
         celltype
@@ -493,6 +492,7 @@ adapt_reference <- function(
   # remove excluded cell types
   names(reference)[names(reference) == celltype_col] <- "celltype"
   reference <- reference[reference$celltype %!in% exclude_celltypes, ]
+  reference$celltype_original <- reference$celltype
 
   reference <- check_id(reference)
 
