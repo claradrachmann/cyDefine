@@ -9,3 +9,4 @@ data/.*\.rds
 diagram.png
 ^doc$
 ^Meta$
+figs

@@ -114,7 +114,7 @@ batch_correct <- function(
 
   # run batch correction
   corrected <- cyCombine::batch_correct(
-    df = uncorrected,
+    uncorrected,
     markers = markers,
     label = label,
     xdim = xdim,

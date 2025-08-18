@@ -64,8 +64,9 @@ expand_colors <- function(adapted_celltypes, original_celltypes = NULL, colors =
 #' @param markers Character vector of available markers
 #' @param colors Optional: Named list of colors per cell type. Values should be
 #' HEX colors and names should be the unique cell types
-#' @param query_col Column to color by. Default "predicted_celltype"
-#' @param ref_col Column to color by. Default "celltype"
+#' @param col Column to color by.
+#' @param query_col Column to color query by. Default "predicted_celltype"
+#' @param ref_col Column to color reference by. Default "celltype"
 #' @param build_umap_on Character describing what data should be applied for
 #' performing the UMAP embedding. Options are "both" (default), "reference",
 #' and "query". "Both" implies that the UMAP embedding is done on both the
@@ -87,6 +88,7 @@ plot_umap <- function(reference,
                       query = NULL,
                       markers = NULL,
                       colors = NULL,
+                      col = NULL,
                       query_col = "predicted_celltype",
                       ref_col = "celltype",
                       build_umap_on = c("both", "reference"),
@@ -104,7 +106,7 @@ plot_umap <- function(reference,
 
   build_umap_on <- match.arg(build_umap_on)
   add_centroids <- as.character(add_centroids) |> match.arg(add_centroids)
-
+  if (!is.null(col)) ref_col <- query_col <- col
   # check required packages
   check_package("ggplot2")
   check_package("uwot")
@@ -125,8 +127,14 @@ plot_umap <- function(reference,
   if (is.null(markers)) markers <- cyCombine::get_markers(reference)
 
   check_colnames(colnames(reference), c(ref_col, markers))
+  if ("UMAP1" %in% colnames(reference)) {
+    reference[, c("UMAP1", "UMAP2")] <- NULL
+  }
   if (!is.null(query)) {
   check_colnames(colnames(query), c(query_col, markers))
+    if ("UMAP1" %in% colnames(query)) {
+      query[, c("UMAP1", "UMAP2")] <- NULL
+    }
   }
 
   if (verbose) message("Generating UMAP")
@@ -223,7 +231,7 @@ plot_umap <- function(reference,
 
   if (is.null(query)) {
     if (return_data) {
-      list("data" = reference, "plot" = ref_plot)
+      return(list("data" = reference, "plot" = ref_plot))
     } else {
       return(ref_plot)
     }
@@ -326,15 +334,18 @@ adding_centroids <- function(df, embedding_plot, add_centroids, col, highlight_l
 #' @param highlight_labels Logical indicating whether to highlight centroid labels
 #' with ellipses (default FALSE)
 #' @param legend_title Manually assigned legend title.
+#' @param slot used if embedding is a list. Specifies the slot with UMAPs. Default: "data"
 #'
 #' @return ggplot2 object showing the embedding visualization
 #' @export
 plot_embedding <- function(embedding, col, colors = NULL, title = "", add_centroids = c(FALSE, TRUE, "text", "label"), highlight_labels = FALSE,
-                           legend_title = ggplot2::waiver()) {
+                           legend_title = ggplot2::waiver(), slot = "data") {
 
   add_centroids <- as.character(add_centroids) |> match.arg(add_centroids)
 
   is_factor <- class(embedding[[col]]) != "numeric"
+
+  if (is(embedding, "list")) embedding <- embedding[[slot]]
 
   if (is_factor) {
 

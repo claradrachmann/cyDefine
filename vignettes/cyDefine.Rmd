@@ -209,10 +209,10 @@ reference <- adapt_reference(
 If your reference and query samples do not originate from the same experimental batch, technical variance, referred to as batch effects, can lead to disparate signal intensities of cells of the same phenotype, between the samples. Therefore, `cyDefine` offers batch correction via `cyCombine` [(Pedersen et al., 2022)](https://www.nature.com/articles/s41467-022-29383-5), which allows for correction of batch effects within as well as across technologies. (This step is only strictly necessary if the reference and query stem from different batches/experiments). See `?cyCombine::batch_correct` for additional parameters and [the cyCombine vignettes](https://biosurf.org/cyCombine.html) for demonstrations of use cases.
 
 ```{r correct, message=FALSE, results=FALSE, warning=FALSE}
-corrected <- batch_correct(
+corrected <- cyDefine::batch_correct(
   reference, 
   query, 
-  markers, 
+  markers = markers, 
   covar = NULL,
   xdim = 6, ydim = 6,
   seed = 332)
