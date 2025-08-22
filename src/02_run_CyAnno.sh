@@ -13,7 +13,7 @@ for dataset in "${datasets[@]}"; do
       --unassigned true \
       --force true
     SECONDS=0
-    python CyAnno/CyAnno_general.py \
+    python ../CyAnno/CyAnno_general.py \
       --dir "data/${dataset}/CyAnno_data" \
       --unassigned true
     echo "Runtime (seconds): $SECONDS" > data/${dataset}/${dataset}_CyAnno_w_unassigned_runtime.txt
@@ -23,7 +23,7 @@ for dataset in "${datasets[@]}"; do
       --unassigned false \
       --force true
     SECONDS=0
-    python CyAnno/CyAnno_general.py \
+    python ../CyAnno/CyAnno_general.py \
       --dir "data/${dataset}/CyAnno_data" \
       --unassigned false
     echo "Runtime (seconds): $SECONDS" > data/${dataset}/${dataset}_CyAnno_w_unassigned_runtime.txt

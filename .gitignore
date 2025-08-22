@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Rprofile
+.DS_Store
+data
+figs
+*.Rproj
+CyAnno
+._*
+R/._*

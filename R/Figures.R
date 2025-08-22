@@ -1,95 +1,10 @@
-library(dplyr)
 library(ggplot2)
+library(patchwork)
+library(ggpubr)
 
-# Load all F1 score files recursively from data folder
-f1_files <- list.files("data", pattern = "_F1\\.rds$", recursive = TRUE, full.names = TRUE)
-f1_files <- f1_files[stringr::str_detect(f1_files, "unassigned")]
-# Create a list to store results
-f1_results <- list()
+df_f1 <- readRDS("results/F1.rds")
 
-# Load each file and extract information from filename
-for (file in f1_files) {
-  # Read the RDS file
-  f1_data <- readRDS(file)
-  if (length(f1_data) == 0) {
-    message(file)
-    next}
-
-  # Extract basename without extension
-  basename <- tools::file_path_sans_ext(basename(file))
-
-  # Parse filename to extract dataset, method, and other info
-  # Assuming format: dataset_method_suffix_F1.rds
-  parts <- strsplit(basename, "_")[[1]]
-
-  # Remove "F1" from the end
-  parts <- parts[-length(parts)]
-  print(parts)
-  # Extract dataset (first part) and method (combine remaining parts)
-  dataset <- parts[1]
-  method <- parts[2]
-  unassigned <- paste(parts[-1:-2], collapse = "_")
-
-  # Store results with metadata
-  f1_results[[basename]] <- data.frame(
-    celltype = names(f1_data),
-    f1_score = f1_data,
-    dataset = dataset,
-    method = method,
-    unassigned = unassigned,
-    file = basename, row.names = NULL
-  )
-}
-
-# Combine all results into one dataframe
-df_f1 <- dplyr::bind_rows(f1_results)
-
-# Clean up method names to match the plot
-df_f1 <- df_f1 |>
-  mutate(
-    method = case_when(
-      str_detect(method, "CLC") ~ "CyTOF Linear\nClassifier",
-      TRUE ~ method
-    ),
-    method = factor(method, levels = c("CyTOF Linear\nClassifier", "Spectre", "CyAnno", "cyDefine"))
-  )
-
-# Figure 3c Boxplot ----
-fig3c <- df_f1 |>
-  # dplyr::filter(stringr::str_detect(file, "wo_unassigned", negate = TRUE)) |>
-  ggplot(aes(x = dataset, y = f1_score, fill = method)) +
-  geom_boxplot(position = position_dodge(width = 0.8),
-               outlier.size = 0,
-               outlier.alpha = 0.7) +
-  facet_wrap(~unassigned) +
-  geom_point(shape = 21, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = c(
-    "cyDefine" = "#A8D8A8",
-    "CyTOF Linear\nClassifier" = "#F4A460",
-    "CyAnno" = "#FA8072",
-    "Spectre" = "#87CEEB"
-  )) +
-  scale_y_continuous(limits = c(0, 1.0), breaks = seq(0, 1, 0.25)) +
-  labs(
-    title = "F1 score per cell type\n(including unassigned cells)",
-    x = "Dataset",
-    y = "F1 score per cell type",
-    fill = ""
-  ) +
-  # theme_classic() +
-  ggpubr::theme_pubr() +
-  theme(
-    plot.title = element_text(hjust = 0, size = 11),
-    axis.text.x = element_text(angle = 0, hjust = 0.5),
-    legend.position = "right",
-    panel.grid.major.y = element_line(color = "grey90", size = 0.3),
-    panel.grid.minor.y = element_line(color = "grey95", size = 0.2)
-  )
-
-fig3c
-
-
-# Heatmap ----
+# Figure 3ab - Heatmap ----
 # Calculate average F1 scores by dataset and method
 df_heatmap <- df_f1 |>
   group_by(dataset, method, unassigned) |>
@@ -153,32 +68,72 @@ create_heatmap <- function(data, condition_filter, title) {
 }
 
 # Create heatmap for including unassigned cells
-fig_heatmap_a <- create_heatmap(
+fig3a <- create_heatmap(
   df_heatmap,
   "w_unassigned",
   "Average F1 score\n(including unassigned cells)"
 )
 
 # Create heatmap for excluding unassigned cells
-fig_heatmap_b <- create_heatmap(
+fig3b <- create_heatmap(
   df_heatmap,
   "wo_unassigned",
   "Average F1 score\n(excluding unassigned cells)"
 )
 
-print(fig_heatmap_a)
-print(fig_heatmap_b)
+print(fig3a)
+print(fig3b)
 
 # Combine heatmaps side by side
 library(patchwork)
-combined_heatmap <- fig_heatmap_a + fig_heatmap_b +
+fig3ab <- fig3a + fig3b +
   plot_layout(guides = "collect") +
   plot_annotation(tag_levels = "a")
 
-print(combined_heatmap)
+print(fig3ab)
 
 # Save plots
-ggsave("f1_boxplot.png", fig3c, width = 12, height = 6, dpi = 300)
-ggsave("f1_heatmap_combined.png", combined_heatmap, width = 14, height = 6, dpi = 300)
-ggsave("f1_heatmap_with_unassigned.png", fig_heatmap_a, width = 7, height = 5, dpi = 300)
-ggsave("f1_heatmap_without_unassigned.png", fig_heatmap_b, width = 7, height = 5, dpi = 300)
+ggsave("figs/Figure3ab.png", fig3ab, width = 10, height = 5, dpi = 300)
+
+
+# Figure 3c Boxplot ----
+fig3c <- df_f1 |>
+  # dplyr::filter(stringr::str_detect(file, "wo_unassigned", negate = TRUE)) |>
+  ggplot(aes(x = dataset, y = f1_score, fill = method)) +
+  geom_boxplot(position = position_dodge(width = 0.8),
+               outlier.size = 0,
+               outlier.alpha = 0.7) +
+  facet_wrap(~unassigned) +
+  geom_point(shape = 21, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c(
+    "cyDefine" = "#A8D8A8",
+    "CyTOF Linear\nClassifier" = "#F4A460",
+    "CyAnno" = "#FA8072",
+    "Spectre" = "#87CEEB"
+  )) +
+  scale_y_continuous(limits = c(0, 1.0), breaks = seq(0, 1, 0.25)) +
+  labs(
+    title = "F1 score per cell type\n(including unassigned cells)",
+    x = "Dataset",
+    y = "F1 score per cell type",
+    fill = ""
+  ) +
+  # theme_classic() +
+  ggpubr::theme_pubr() +
+  theme(
+    plot.title = element_text(hjust = 0, size = 11),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    legend.position = "right",
+    panel.grid.major.y = element_line(color = "grey90", size = 0.3),
+    panel.grid.minor.y = element_line(color = "grey95", size = 0.2)
+  )
+
+print(fig3c)
+ggsave(plot = fig3c, filename = "figs/Figure3c.png", width = 10, height = 5, dpi = 300)
+
+
+# Figure 3
+fig3 <- fig3ab / fig3c  +
+  plot_annotation(tag_levels = "a")
+print(fig3)
+ggsave(plot = fig3, filename = "figs/Figure3.png", width = 10, height = 10, dpi = 300)

@@ -1,6 +1,6 @@
 library(argparse)
 library(dplyr)
-source("CyAnno/helper.R")
+source("../CyAnno/helper.R")
 
 # Define argument parser
 parser <- ArgumentParser(description="Run CyAnno")

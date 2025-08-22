@@ -1,0 +1,18 @@
+name: cyanno
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7.1
+  - numpy=1.18.1
+  - pandas=0.25.3
+  - scikit-learn=0.20.1
+  - scipy=1.4.1
+  - xgboost=0.90
+  - joblib=0.13.0
+  - matplotlib=3.4.3
+  - seaborn=0.12.2
+  - pip
+  - pip:
+    - faiss-cpu==1.7.4
+    - fcsparser==0.2.4

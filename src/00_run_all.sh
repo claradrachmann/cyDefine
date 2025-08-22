@@ -2,21 +2,27 @@
 
 
 # Prepare datasets
-bash R/01_prepare_data.sh
+bash src/01_prepare_data.sh
 
 # Run cyDefine
-bash R/02_run_cyDefine.sh
+bash src/02_run_cyDefine.sh
 # Run CLC
-bash R/02_run_CLC.sh
+bash src/02_run_CLC.sh
 # Run Spectre
-bash R/02_run_Spectre.sh
+bash src/02_run_Spectre.sh
 # Run CyAnno
 mamba activate cyanno
-bash R/02_run_CyAnno.sh
+cp CyAnno_changes/* ../CyAnno/
+bash src/02_run_CyAnno.sh
 
 # Evaluate
-bash R/03_run_F1.sh
+bash src/03_run_F1.sh
 
+# Compile results
+Rscript R/compile_results.R
+
+# Create Figures
+Rscript R/Figures.R
 
 exit
 
