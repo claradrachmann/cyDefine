@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# cyDefine
+# cyDefine <img src="inst/cyDefine.png" width="200" align="right" />
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
@@ -85,12 +85,11 @@ classified <- cyDefine(
 #> Scaling expression data..
 #> Creating SOM grid..
 #> Batch correcting data..
-#> Done!
 #> Making initial projection to filter out redundant cell types of the reference
 #> Excluding the following redundant celltypes from the reference: 
 #> Basophil
 #> Training random forest model using 4 threads
-#> Model training took: 13.48 seconds
+#> Model training took: 14.19 seconds
 #> Identifying unassigned cells per predicted cell type
 ```
 
@@ -115,8 +114,7 @@ celltype_colors <- get_distinct_colors(unique(classified$reference$celltype),
 
 # UMAP of reference and query
 plot_umap(
-  classified$reference,
-  classified$query,
+  classified,
   example_markers,
   sample_n = 5000,
   colors = celltype_colors)
