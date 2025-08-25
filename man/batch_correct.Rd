@@ -29,24 +29,28 @@ batch_correct(
 
 \item{markers}{Character vector of available markers}
 
-\item{covar}{The covariate ComBat should use. Can be a vector or a column name in the input tibble.
-If NULL, no covar will be used}
+\item{covar}{Optional: Covariate column name or vector for correction.}
 
-\item{label}{The cluster or cell type label. Either as a column name or vector.}
+\item{label}{Character string for the cluster labels column. If this column
+already exists in the object metadata, the normalization and clustering steps are
+skipped, and correction proceeds using these existing labels. Defaults to "Labels".}
 
-\item{norm_method}{Normalization method. Should be either 'rank', 'scale', 'CLR', 'CLR_seu', 'CLR_med', or 'qnorm'. Default: 'scale'. CLR is recommended for ADT normalization. CLR_seu mimicks the Seurat implementation of CLR. CLR_med uses the median instead of geometric mean.}
+\item{norm_method}{Normalization method ("scale", "rank", "clr", "lognorm", "qnorm", "none").
+Applied before clustering unless \code{labels_colname} is provided. Defaults to "scale".}
 
-\item{ref.batch}{Optional. A string of the batch that should be used as the reference for batch adjustments.}
+\item{ref.batch}{Optional: Reference batch for ComBat.}
 
-\item{seed}{The seed to use when creating the SOM.}
+\item{seed}{Integer, random seed for reproducibility.}
 
-\item{xdim}{The x-dimension size of the SOM.}
+\item{xdim}{Integer or vector of integers, the x-dimension(s) of the SOM grid
+(for "kohonen" and "flowsom"). If a vector, the workflow iterates.}
 
-\item{ydim}{The y-dimension size of the SOM.}
+\item{ydim}{Integer or vector of integers, the y-dimension(s) of the SOM grid.
+If a vector, the workflow iterates. Length should match \code{xdim} or be 1.}
 
-\item{rlen}{Number of times the data is presented to the SOM network}
+\item{rlen}{Integer, the number of iterations for SOM training.}
 
-\item{mc.cores}{Number of cores for parallelization}
+\item{mc.cores}{Number of cores for parallel processing. Defaults to 1.}
 
 \item{num.threads}{Number of threads to parallelize with}
 

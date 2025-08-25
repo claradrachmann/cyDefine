@@ -89,7 +89,7 @@ classified <- cyDefine(
 #> Excluding the following redundant celltypes from the reference: 
 #> Basophil
 #> Training random forest model using 4 threads
-#> Model training took: 14.19 seconds
+#> Model training took: 13.43 seconds
 #> Identifying unassigned cells per predicted cell type
 ```
 

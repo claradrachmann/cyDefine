@@ -11,7 +11,8 @@ plot_embedding(
   title = "",
   add_centroids = c(FALSE, TRUE, "text", "label"),
   highlight_labels = FALSE,
-  legend_title = ggplot2::waiver()
+  legend_title = ggplot2::waiver(),
+  slot = "data"
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ Options are "text"/TRUE, "label", or FALSE (default)}
 with ellipses (default FALSE)}
 
 \item{legend_title}{Manually assigned legend title.}
+
+\item{slot}{used if embedding is a list. Specifies the slot with UMAPs. Default: "data"}
 }
 \value{
 ggplot2 object showing the embedding visualization

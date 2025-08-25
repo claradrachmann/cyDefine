@@ -60,11 +60,13 @@ should be adapted to match the query marker panel. Default: FALSE if
 \item{batch_correct}{Boolean indicating whether or not you want to perform
 batch correction via cyCombine}
 
-\item{ref.batch}{Optional. A string of the batch that should be used as the reference for batch adjustments.}
+\item{ref.batch}{Optional: Reference batch for ComBat.}
 
-\item{xdim}{The x-dimension size of the SOM.}
+\item{xdim}{Integer or vector of integers, the x-dimension(s) of the SOM grid
+(for "kohonen" and "flowsom"). If a vector, the workflow iterates.}
 
-\item{ydim}{The y-dimension size of the SOM.}
+\item{ydim}{Integer or vector of integers, the y-dimension(s) of the SOM grid.
+If a vector, the workflow iterates. Length should match \code{xdim} or be 1.}
 
 \item{identify_unassigned}{Boolean indicating whether or not you want to
 identify unassigned cells after classifying the cells.}
@@ -72,8 +74,7 @@ identify unassigned cells after classifying the cells.}
 \item{norm_method}{Normalization method for cyCombine batch correction.
 Should be either 'rank', 'scale', or 'qnorm'. Default is 'scale'.}
 
-\item{covar}{The covariate ComBat should use. Can be a vector or a column name in the input tibble.
-If NULL, no covar will be used}
+\item{covar}{Optional: Covariate column name or vector for correction.}
 
 \item{load_model}{Optional: Path to an rda file of a previously trained model}
 
@@ -93,7 +94,7 @@ For survival "logrank", "extratrees", "C" or "maxstat" with default "logrank".}
 
 \item{num.threads}{Number of threads. Use 0 for all available cores. Default is 2 if not set by options/environment variables (see below).}
 
-\item{mc.cores}{Number of cores for parallelization}
+\item{mc.cores}{Number of cores for parallel processing. Defaults to 1.}
 
 \item{save_adapted_reference}{Default: NULL. Save the adapted reference in a
 specified object name or as "adapted_reference.rds" in a specified path.

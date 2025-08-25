@@ -9,6 +9,7 @@ plot_umap(
   query = NULL,
   markers = NULL,
   colors = NULL,
+  col = NULL,
   query_col = "predicted_celltype",
   ref_col = "celltype",
   build_umap_on = c("both", "reference"),
@@ -35,9 +36,11 @@ plot_umap(
 \item{colors}{Optional: Named list of colors per cell type. Values should be
 HEX colors and names should be the unique cell types}
 
-\item{query_col}{Column to color by. Default "predicted_celltype"}
+\item{col}{Column to color by.}
 
-\item{ref_col}{Column to color by. Default "celltype"}
+\item{query_col}{Column to color query by. Default "predicted_celltype"}
+
+\item{ref_col}{Column to color reference by. Default "celltype"}
 
 \item{build_umap_on}{Character describing what data should be applied for
 performing the UMAP embedding. Options are "both" (default), "reference",
