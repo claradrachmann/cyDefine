@@ -91,7 +91,7 @@ identify_unassigned <- function(reference,
                                 query,
                                 markers,
                                 num.threads = 1,
-                                mtry = 22,
+                                mtry = floor(length(markers)/3),
                                 train_on_unassigned = TRUE,
                                 unassigned_name = "unassigned",
                                 pct_expl_var = 0.95,
@@ -157,7 +157,7 @@ identify_unassigned <- function(reference,
 
           return(dplyr::tibble(
             "id" = celltype_query$id,
-            "predicted_celltype" = !!unassigned_name
+            "predicted_celltype" = popu
           ))
         }
 

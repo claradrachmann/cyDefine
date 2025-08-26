@@ -81,7 +81,7 @@ classify_cells <- function(
     query,
     markers,
     subsample = 2000,
-    mtry = 22,
+    mtry = floor(length(markers)/3),
     min.node.size = 1,
     splitrule = "gini",
     num.trees = 300,
