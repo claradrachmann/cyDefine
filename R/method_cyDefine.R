@@ -58,6 +58,9 @@ classified <- cyDefine(
   mtry = mtry
 )
 })
+if (input$unassigned_name != "unassigned") {
+  classified$query$predicted_celltype[classified$query$predicted_celltype == "unassigned"] <- input$unassigned_name
+}
 
 output <- data.frame(
   "celltype" = classified$query$celltype,

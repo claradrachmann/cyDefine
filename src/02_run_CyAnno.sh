@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ## Activate CyAnno environment
-mamba activate cyanno
-
+# mamba activate cyanno
+# cp CyAnno_changes/* ../CyAnno/
 datasets=("Levine13" "Levine32" "Samusik" "POISED")
 echo "Running CyAnno"
 for dataset in "${datasets[@]}"; do
@@ -12,19 +12,32 @@ for dataset in "${datasets[@]}"; do
       --name ${dataset} \
       --unassigned true \
       --force true
+
     SECONDS=0
     python ../CyAnno/CyAnno_general.py \
       --dir "data/${dataset}/CyAnno_data" \
       --unassigned true
     echo "Runtime (seconds): $SECONDS" > data/${dataset}/${dataset}_CyAnno_w_unassigned_runtime.txt
+
+    echo "Collecting Results"
+    Rscript R/collect_CyAnno.R \
+      --name ${dataset} \
+      --unassigned true
+
     echo "without unassigned"
     Rscript R/method_CyAnno.R \
       --name ${dataset} \
       --unassigned false \
       --force true
+
     SECONDS=0
     python ../CyAnno/CyAnno_general.py \
       --dir "data/${dataset}/CyAnno_data" \
       --unassigned false
-    echo "Runtime (seconds): $SECONDS" > data/${dataset}/${dataset}_CyAnno_w_unassigned_runtime.txt
+    echo "Runtime (seconds): $SECONDS" > data/${dataset}/${dataset}_CyAnno_wo_unassigned_runtime.txt
+
+    echo "Collecting Results"
+    Rscript R/collect_CyAnno.R \
+      --name ${dataset} \
+      --unassigned false
 done

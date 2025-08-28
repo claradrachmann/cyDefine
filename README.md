@@ -15,8 +15,9 @@ benchmark compares the phenotype transfer tools `cyDefine`, `CyAnno`,
 | Samusik  | HDCytoData  |
 | POISED   | FR-FCM-Z2V9 |
 
-Download the POISED dataset manually. The remaining datasets will be
-downloaded automatically.
+Download the POISED dataset manually, unzip `ProcessedData.zip`, and put
+it in `data/POISED`. The remaining datasets will be downloaded
+automatically.
 
 ## Recreate figures
 

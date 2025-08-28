@@ -21,7 +21,7 @@ data_dir <- file.path(dir, "LiveLabelledCells")
 
 files <- list.files(data_dir, pattern = "csv", full.names = TRUE)
 
-df <- readr::read_csv(files, id = "sample", col_select = -1)
+df <- readr::read_csv(files, id = "sample", col_select = -1, show_col_types = FALSE)
 
 markers <- colnames(df)[!colnames(df) %in% c("labels", "condition", "sample")]
 
@@ -30,6 +30,7 @@ df_mod <- df |>
                 sample = sample |> stringr::str_extract("P\\d+")) |>
   dplyr::rename(celltype = labels) |>
   cyCombine::transform_asinh(markers = markers)
+
 
 # Select reference sample
 sample_counts <- table(df_mod$sample)
@@ -41,6 +42,20 @@ reference <- dplyr::filter(df_mod, sample == sample_max) |>
 query <- dplyr::filter(df_mod, sample != sample_max) |>
   tidyr::unite(col = "sample", sample, condition)
 
+# Filter populations <10 cells
+small_pop <- table(reference$celltype)
+small_pop <- small_pop[small_pop < 10]
+
+if (length(small_pop) > 0) {
+  message("Removing celltypes: ", paste(names(small_pop)), " from the reference")
+  reference <- reference |>
+    dplyr::filter(!celltype %in% names(small_pop))
+  query <- query |>
+    mutate(celltype = case_when(
+      celltype %in% names(small_pop) ~ "Unknown",
+      TRUE ~ celltype
+    ))
+}
 
 # Store output
 saveRDS(list(

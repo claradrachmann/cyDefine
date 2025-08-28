@@ -44,15 +44,15 @@ format_data_for_cyanno <- function(input, output_dir = file.path(dir, "CyAnno_da
 
   for (i in seq_len(nrow(sample_celltype_combinations))) {
     sample_id <- sample_celltype_combinations$sample[i]
-    celltype <- sample_celltype_combinations$celltype[i]
+    celltype_id <- sample_celltype_combinations$celltype[i]
 
     # Filter cells for this sample and cell type
     cells_subset <- reference %>%
-      dplyr::filter(sample == sample_id, celltype == celltype) %>%
+      dplyr::filter(sample == sample_id, celltype == celltype_id) %>%
       select(all_of(markers))
 
     # Create filename
-    filename <- paste0("handgated_", sample_id, "_", gsub("[^A-Za-z0-9]", "_", celltype), ".csv")
+    filename <- paste0("handgated_", sample_id, "_", gsub("[^A-Za-z0-9]", "_", celltype_id), ".csv")
     filepath <- file.path(handgated_dir, filename)
 
     # Write CSV file
@@ -61,7 +61,7 @@ format_data_for_cyanno <- function(input, output_dir = file.path(dir, "CyAnno_da
     # Add to handgated info
     handgated_info <- rbind(handgated_info, data.frame(
       file_path = filepath,
-      celltype = celltype,
+      celltype = celltype_id,
       sample_id = sample_id,
       stringsAsFactors = FALSE
     ))
@@ -109,7 +109,7 @@ format_data_for_cyanno <- function(input, output_dir = file.path(dir, "CyAnno_da
   for (sample_id in query_samples) {
     # Get all cells from this query sample (with only lineage markers)
     sample_cells <- query %>%
-      dplyr::filter(sample == sample_id) %>%
+      dplyr::filter(sample == sample_id)  |>
       select(all_of(markers))
 
     # Create filename

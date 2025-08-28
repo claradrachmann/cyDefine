@@ -1,15 +1,29 @@
 library(ggplot2)
+library(dplyr)
 library(patchwork)
 library(ggpubr)
 
+
+# Define colors to match your previous plots
+method_colors <- c(
+  "cyDefine" = "#A8D8A8",
+  "CyTOF Linear\nClassifier" = "#F4A460",
+  "CyAnno" = "#FA8072",
+  "Spectre" = "#87CEEB"
+)
+
+
+# F1 ----
+
 df_f1 <- readRDS("results/F1.rds")
 
-# Figure 3ab - Heatmap ----
+
+## Figure 3ab - Heatmap ----
 # Calculate average F1 scores by dataset and method
 df_heatmap <- df_f1 |>
   group_by(dataset, method, unassigned) |>
   summarise(
-    avg_f1 = mean(f1_score, na.rm = TRUE),
+    avg_f1 = median(f1_score, na.rm = TRUE),
     .groups = "drop"
   ) |>
   group_by(dataset, unassigned) |>
@@ -18,9 +32,7 @@ df_heatmap <- df_f1 |>
     # Round to 3 decimal places for display
     avg_f1 = round(avg_f1, 3),
     # Create text labels
-    label = ifelse(avg_f1 >= 0.9,
-                   paste0(avg_f1, "†"),
-                   as.character(avg_f1)),
+    label = as.character(avg_f1),
     # Add asterisk for missing data (if needed)
     label = ifelse(is.na(avg_f1), "*", label),
     is_max = ifelse(is.na(is_max), FALSE, is_max),
@@ -29,7 +41,7 @@ df_heatmap <- df_f1 |>
 # Create heatmaps for both conditions
 create_heatmap <- function(data, condition_filter, title) {
   data |>
-    filter(unassigned == condition_filter) |>
+    dplyr::filter(unassigned == condition_filter) |>
     ggplot(aes(x = method, y = dataset, fill = avg_f1)) +
     geom_tile(color = "white", size = 0.5) +
     geom_text(aes(label = ifelse(.data$is_max, .data$label, ""), fontface = "bold"), size = 3.5) +
@@ -79,38 +91,40 @@ fig3b <- create_heatmap(
   df_heatmap,
   "wo_unassigned",
   "Average F1 score\n(excluding unassigned cells)"
-)
+) +
+  ylab("")
 
-print(fig3a)
-print(fig3b)
+# Create heatmap for excluding unassigned cells
+fig3z <- create_heatmap(
+  df_heatmap,
+  "rm_unassigned",
+  "Average F1 score\n(disregarding unassigned cells)"
+) +
+  ylab("")
+
 
 # Combine heatmaps side by side
 library(patchwork)
-fig3ab <- fig3a + fig3b +
-  plot_layout(guides = "collect") +
+fig3ab <- fig3a + fig3b + fig3z +
+  plot_layout(guides = "collect", axis_titles = "collect") +
   plot_annotation(tag_levels = "a")
 
-print(fig3ab)
+# print(fig3ab)
 
 # Save plots
 ggsave("figs/Figure3ab.png", fig3ab, width = 10, height = 5, dpi = 300)
 
 
-# Figure 3c Boxplot ----
+## Figure 3c Boxplot ----
 fig3c <- df_f1 |>
-  # dplyr::filter(stringr::str_detect(file, "wo_unassigned", negate = TRUE)) |>
+  dplyr::filter(stringr::str_detect(file, "w_unassigned")) |>
   ggplot(aes(x = dataset, y = f1_score, fill = method)) +
   geom_boxplot(position = position_dodge(width = 0.8),
                outlier.size = 0,
                outlier.alpha = 0.7) +
-  facet_wrap(~unassigned) +
+  # facet_wrap(~unassigned) +
   geom_point(shape = 21, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = c(
-    "cyDefine" = "#A8D8A8",
-    "CyTOF Linear\nClassifier" = "#F4A460",
-    "CyAnno" = "#FA8072",
-    "Spectre" = "#87CEEB"
-  )) +
+  scale_fill_manual(values = method_colors) +
   scale_y_continuous(limits = c(0, 1.0), breaks = seq(0, 1, 0.25)) +
   labs(
     title = "F1 score per cell type\n(including unassigned cells)",
@@ -118,22 +132,56 @@ fig3c <- df_f1 |>
     y = "F1 score per cell type",
     fill = ""
   ) +
-  # theme_classic() +
   ggpubr::theme_pubr() +
   theme(
     plot.title = element_text(hjust = 0, size = 11),
     axis.text.x = element_text(angle = 0, hjust = 0.5),
     legend.position = "right",
-    panel.grid.major.y = element_line(color = "grey90", size = 0.3),
-    panel.grid.minor.y = element_line(color = "grey95", size = 0.2)
+    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3),
+    panel.grid.minor.y = element_line(color = "grey95", linewidth = 0.2)
   )
 
-print(fig3c)
+# print(fig3c)
 ggsave(plot = fig3c, filename = "figs/Figure3c.png", width = 10, height = 5, dpi = 300)
 
 
 # Figure 3
 fig3 <- fig3ab / fig3c  +
   plot_annotation(tag_levels = "a")
-print(fig3)
-ggsave(plot = fig3, filename = "figs/Figure3.png", width = 10, height = 10, dpi = 300)
+# print(fig3)
+ggsave(plot = fig3, filename = "figs/Figure3.png", width = 15, height = 10)
+
+
+
+
+# Runtimes ----
+
+df_runtimes <- readRDS("results/runtimes.rds")
+
+# Runtime bar plot by dataset and method
+fig_runtime <- df_runtimes %>%
+  ggplot(aes(x = dataset, y = runtime, fill = method)) +
+  geom_col(position = position_dodge(width = 1), alpha = 0.8) +
+  geom_text(aes(
+    label = paste0(round(runtime, 1), "s")),
+    vjust = -0.5,
+    position = position_dodge(width = 1)) +
+  facet_wrap(~unassigned_label) +
+  scale_fill_manual(values = method_colors) +
+  scale_y_sqrt(labels = scales::label_number(suffix = "s")) +
+  labs(
+    title = "Runtime Comparison",
+    x = "Dataset",
+    y = "Runtime (seconds, sqrt scale)",
+    fill = "Method"
+  ) +
+  theme_pubr() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+
+
+# Save plot
+ggsave("figs/fig_runtime.png", fig_runtime, width = 16, height = 8, dpi = 300)

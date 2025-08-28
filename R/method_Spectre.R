@@ -31,10 +31,14 @@ knn.stats <- train.knn.classifier(
   dat = as.data.table(reference),
   use.cols = input$markers,
   label.col = "celltype",
-  method = "CV", num.folds = 10,
+  # method = "CV", num.folds = 10,
   seed = seed,
-  max.num.neighbours = 20)
+  min.num.neighbours = 3,
+  max.num.neighbours = 15)
 
+print(knn.stats)
+k.max <- knn.stats$k[which(knn.stats$accuracy == max(knn.stats$accuracy, na.rm = TRUE))]
+message("Best K: ", k.max)
 
 classified <- Spectre::run.knn.classifier(
   train.dat = reference,
@@ -42,7 +46,7 @@ classified <- Spectre::run.knn.classifier(
   use.cols = input$markers,
   label.col = "celltype",
   seed = seed,
-  num.neighbours = knn.stats$k[which(knn.stats$accuracy == max(knn.stats$accuracy))])
+  num.neighbours = k.max)
 
 })
 

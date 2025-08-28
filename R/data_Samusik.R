@@ -32,6 +32,21 @@ reference <- dplyr::filter(df, sample == sample_max)
 query <- dplyr::filter(df, sample != sample_max)
 
 
+# Filter populations <10 cells
+small_pop <- table(reference$celltype)
+small_pop <- small_pop[small_pop < 10]
+
+if (length(small_pop) > 0) {
+  message("Removing celltypes: ", paste(names(small_pop)), " from the reference")
+  reference <- reference |>
+    dplyr::filter(!celltype %in% names(small_pop))
+  query <- query |>
+    mutate(celltype = case_when(
+      celltype %in% names(small_pop) ~ "unassigned",
+      TRUE ~ celltype
+    ))
+}
+
 # Store output
 saveRDS(list(
   "reference" = reference,
