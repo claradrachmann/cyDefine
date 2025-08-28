@@ -280,8 +280,9 @@ identify_unassigned <- function(reference,
 
     # change predicted population to "unassigned" for cells with distance > max_distance to their predicted celltype
     query <- query |>
-      dplyr::mutate(predicted_celltype = ifelse(distance > max_distance,
-        "unassigned",
+      dplyr::mutate(predicted_celltype = ifelse(
+        distance > max_distance,
+        unassigned_name,
         as.character(model_prediction)
       ))
   }
