@@ -24,3 +24,5 @@ Rscript R/compile_results.R
 # Create Figures
 Rscript R/Figures.R
 
+# Universal phenotype transfer
+bash src/04_run_cyDefine_universal.sh
